@@ -20,12 +20,13 @@ coords_file = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/patche
 folders_cv_file = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/folders_cv.npy'
 folders_test_file = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/folders_test.npy'
 coords_df = pd.read_csv(coords_file, sep=',',header=None, names=['folder', 'row', 'col'])
+coords_df = coords_df['folder']
 
 # train / test split
-folders = np.unique(coords_df.folder)
+folders = np.unique(coords_df)
 testfolders = np.random.choice(folders, 97, replace=False)
 np.save(folders_test_file, testfolders)
-coords_test = coords_df[np.isin(coords_df.folder, testfolders)]
+coords_test = coords_df[np.isin(coords_df, testfolders)]
 folders = folders[np.isin(folders, testfolders) == False]
 
 # shuffle
@@ -40,6 +41,6 @@ folders = np.load(folders_cv_file, allow_pickle=True)
 valfolders = folders_shuffled[cv*113:(cv+1)*113]
 trainfolders = folders[np.isin(folders, valfolders) == False]
 
-coords_test = coords_df[np.isin(coords_df.folder, testfolders)]
-coords_val = coords_df[np.isin(coords_df.folder, valfolders)]
-coords_train = coords_df[np.isin(coords_df.folder, trainfolders)]
+coords_test = coords_df[np.isin(coords_df, testfolders)]
+coords_val = coords_df[np.isin(coords_df, valfolders)]
+coords_train = coords_df[np.isin(coords_df, trainfolders)]
