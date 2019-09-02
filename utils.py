@@ -23,6 +23,7 @@ import random
 import csv
 sys.path.append(dirname(__file__))
 
+#################################################################################
 def list_files(directory, extension):
     list = []
     for f in os.listdir(directory): 
@@ -49,7 +50,7 @@ def merge_dataset(path, output_filename):
     
     np.save(path + '/' + output_filename + '.npy', dataset)
 
-
+####################################################################################################################
 def rasterize_polygons(path, input_filename, output_filename, shadow_filename, no_data_value =-9999, fill_value=0):
     """Rasterize a shapefile, output is in integers (UInt16)
     
@@ -63,7 +64,7 @@ def rasterize_polygons(path, input_filename, output_filename, shadow_filename, n
     
     To run e.g. 
     rasterize_polygons(path = 'Data/', input_filename = 'SHP/area_pascolo_fotointerprete_3044_clip.shp', 
-#                   output_filename = '/SHP/testraster.tif', shadow_filename='RGB/025164w_3044.tif')
+                   output_filename = '/SHP/testraster.tif', shadow_filename='RGB/025164w_3044.tif')
     """
     
     # Filename of input OGR file
@@ -117,7 +118,7 @@ def rasterize_polygons(path, input_filename, output_filename, shadow_filename, n
     tempSource = None
     shadow_fn = None  
 
-
+################################################################################################
 def resample_raster(path, input_filename, output_filename, xRes = 1, yRes = 1, resampleAlg=0):
     """ Resample a raster.
     
@@ -160,8 +161,6 @@ def resample_raster(path, input_filename, output_filename, xRes = 1, yRes = 1, r
     dest_ds = None
 
 ###############################################################3
-
-# clip vector layer
 def clip_vectorlayer(path, input_filename, clip_filename, output_filename):
     """Clip a shapefile to the extent of a raster. Coordinate system of raster is used. 
     
@@ -225,8 +224,6 @@ def clip_vectorlayer(path, input_filename, clip_filename, output_filename):
     clip = None  
 
 ################################################################################
-
-# change file names
 def add_band_to_names(path, dirs):
     """ Add the name of the folder to file (e.g. folder RGB, file ends on "_RGB.tif")
     
@@ -282,48 +279,6 @@ def move_file(path, dirs):
             os.rename(path + d + "/" + f, new_name)
            
 ###############################################################################
-# reproject raster
-# =============================================================================
-#             from rasterio.crs import CRS
-# 
-# path = 'RGB/'
-# input_filename = '025153w.tif'
-# output_filename = '025153w_RGB2.tif'
-# 
-#     input_raster = path + input_filename
-#     output_raster = path + output_filename  
-# 
-#     srs = osr.SpatialReference()
-#     srs.ImportFromEPSG(3044)
-# 
-#     src_ds = gdal.Open(input_raster)
-#     src_ds.GetProjection()
-#     src_ds.SetProjection(srs.ExportToWkt())
-#     src_ds.GetProjection()
-#     
-#     
-#     
-#     
-#     
-#     # reproject
-#     dest_ds = gdal.Warp(output_raster,src_ds,dstSRS='EPSG:3044') #,
-#                       format = 'GTiff',
-#                       xRes = 0.2, yRes = 0.2,
-#                       resampleAlg = 1)
-#     
-#     
-#     kwargs = src_ds.meta # Copy metadata of rasterio.io.DatasetReader
-#     with rasterio.open('./AHN2_05m_CHM.tif', 'w', **kwargs) as file:
-#     file.write(CHM.astype(rasterio.float32))
-#     
-#     # clean
-#     src_ds= None
-#     dest_ds = None
-# =============================================================================
-
-############################################################################
-
-# shift NIR to right location
 def snap_tile(path, no_data_value =-9999, fill_value=0):
     """Snap NIR image to the location of the RGB image. 
     
@@ -397,9 +352,6 @@ def snap_tile(path, no_data_value =-9999, fill_value=0):
 
 
 ###############################################################################
-#datawd = '/media/cordolo/FREECOM HDD/DataGrassland/copies/data/'
-#path = '/media/cordolo/FREECOM HDD/DataGrassland/copies/data/test/'
-
 def umap_plot(pixel_values, labels):
     """ Create a UMAP reduced dimensionlity plot 
     
@@ -429,6 +381,7 @@ def umap_plot(pixel_values, labels):
         plt.scatter(embedding[indices,0], embedding[indices, 1], c=colors[i], label=[cl])
     plt.legend()
     plt.show()
+
     
 def pca_plot(pixel_values, labels):
     """ Create a PCA reduced dimensionlity plot 
@@ -460,6 +413,7 @@ def pca_plot(pixel_values, labels):
     plt.legend()
     plt.show()
 
+####################################################################################################################
 def sample_patches_of_class(population, n_samples, cl, gt, patch_size, output_file, d):
     """ sample origin coordinates of patches and save in csv file. 
     
@@ -494,6 +448,7 @@ def sample_patches_of_class(population, n_samples, cl, gt, patch_size, output_fi
                     n_samples==0
                     break
 
+
 def to_categorical_classes(y, n_classes=None, dtype=np.int8, classes = [638,659,654,650,770]):
   """Converts a class vector to binary class matrix.
 
@@ -527,3 +482,95 @@ def to_categorical_classes(y, n_classes=None, dtype=np.int8, classes = [638,659,
   return categorical
 
 
+def read_patch(data_path, dtm_path, coords, patch_size, idx, classes):
+    """ load patch based on left-top coordinate
+    
+    Arguments:
+      data_path: path to the folder containing dataset
+      coords: file with coordinates in the format [subfolder, r (=left), c (=top)]
+      patch_size: size of patch to be extracted in number of pixels (patch will be squared)
+      idx: index of row in coords file to be used
+      classes: list with classes
+
+    Returns:
+      patch: numpy array of size (patch_size, patch_size, 5) with normalized RGB, NIR, DTM 
+      gt: numpy array of size (patch_size, patch_size, n_classes) with one-hot encoded ground truth
+    """
+
+    n_features = 5
+    
+    folder, r, c = coords.iloc[idx]
+    r = int(r)*5
+    c = int(c)*5
+
+    patch = np.zeros([patch_size,patch_size,n_features],dtype=np.float16)
+    
+    # RGB
+    ds = gdal.Open(data_path + folder + '/' + folder + '_RGB.tif',gdal.GA_ReadOnly)    
+    # needed for resampling of dtm 
+    for x in range(1, ds.RasterCount + 1):
+        band = ds.GetRasterBand(x)
+        patch[:,:,x-1] = band.ReadAsArray(c,r,patch_size, patch_size)
+
+    # NIR
+    ds = gdal.Open(data_path + folder + '/' + folder + '_NIR.tif' ,gdal.GA_ReadOnly)
+    band = ds.GetRasterBand(1)
+    patch[:,:,3] = band.ReadAsArray(c, r, patch_size, patch_size)
+
+    # DTM
+    ds = gdal.Open(dtm_path + folder + '/dtm135_20cm.tif' ,gdal.GA_ReadOnly)
+    band = ds.GetRasterBand(1)
+    patch[:,:,4] = band.ReadAsArray(c, r, patch_size, patch_size)
+
+    #normalization
+    patch = np.divide(patch,255)
+    
+    # load ground truth
+    ds = gdal.Open(data_path + folder + '/tare.tif' ,gdal.GA_ReadOnly)
+    band = ds.GetRasterBand(1)
+    gt = band.ReadAsArray(c, r, patch_size, patch_size)
+    
+    # take care of classes
+    gt[np.where(gt == 656)] = 650
+    gt[np.where(gt == 780)] = 770
+    gt[np.isin(gt, classes)==False] = 0
+    
+    gt = to_categorical_classes(gt, classes)
+    
+    return((patch,gt))
+
+###########################################################################################
+# =============================================================================
+# def read_patch_rasterio(data_path, coords, patch_size, idx, classes):
+# """ same as read_patch but using rasterio"""
+# 
+#     folder, r, c = coords.iloc[idx]
+#     r = int(r)*5
+#     c = int(c)*5
+# 
+#     # load features
+#     with rasterio.open(data_path + folder + '/' + folder + '_RGB.tif') as ds:
+#         patch_RGB = ds.read([1,2,3], window=Window(c, r, patch_size, patch_size)).astype(np.float16)
+#     
+#     with rasterio.open(data_path + folder + '/' + folder + '_NIR.tif') as ds:
+#         patch_NIR = ds.read(1, window=Window(c, r, patch_size, patch_size)).reshape(1,patch_size, patch_size).astype(np.float16)
+# 
+#     im = np.vstack([patch_RGB, patch_NIR])
+#     im = np.moveaxis(im, 0, -1)
+#     
+#     #normalization
+#     im[:,:,0:4] = np.divide(im[:,:,0:4],255)
+# 
+#     # load ground truth
+#     with rasterio.open(data_path + folder + '/tare.tif') as ds:
+#         gt = ds.read(1, window=Window(c, r, patch_size, patch_size))
+#         
+#     # take care of classes
+#     gt[np.where(gt == 656)] = 650
+#     gt[np.where(gt == 780)] = 770
+#     gt[np.isin(gt, classes)==False] = 0
+#     
+#     gt = to_categorical_classes(gt, classes)
+#     
+#     return((im,gt))
+# =============================================================================
