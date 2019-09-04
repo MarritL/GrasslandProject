@@ -9,10 +9,6 @@ import tensorflow.keras.backend as K
 from tensorflow.keras.layers import Add, Conv2D
 from tensorflow.keras.layers import BatchNormalization, Activation
 from tensorflow.keras.regularizers import l2
-from BilinearUpSampling import BilinearUpSampling2D
-from tensorflow.keras import initializers
-import math
-import numpy as np
 import sys
 from os.path import dirname
 sys.path.append(dirname(__file__))
@@ -21,7 +17,9 @@ sys.path.append(dirname(__file__))
 # Also, I changed these two functions into functional style
 def identity_block(kernel_size, filters, stage, block, weight_decay=0., batch_momentum=0.99):
     '''The identity_block is the block that has no conv layer at shortcut
-    # Arguments
+    
+    Arguments
+    ---------
         kernel_size: defualt 3, the kernel size of middle conv layer at main path
         filters: list of integers, the nb_filters of 3 conv layer at main path
         stage: integer, current stage label, used for generating layer names
@@ -55,7 +53,9 @@ def identity_block(kernel_size, filters, stage, block, weight_decay=0., batch_mo
 
 def conv_block(kernel_size, filters, stage, block, weight_decay=0., strides=(2, 2), batch_momentum=0.99):
     '''conv_block is the block that has a conv layer at shortcut
-    # Arguments
+    
+    Arguments
+    ---------
         kernel_size: defualt 3, the kernel size of middle conv layer at main path
         filters: list of integers, the nb_filters of 3 conv layer at main path
         stage: integer, current stage label, used for generating layer names
@@ -97,7 +97,9 @@ def conv_block(kernel_size, filters, stage, block, weight_decay=0., strides=(2, 
 # Atrous-Convolution version of residual blocks
 def atrous_identity_block(kernel_size, filters, stage, block, weight_decay=0., atrous_rate=(2, 2), batch_momentum=0.99):
     '''The identity_block is the block that has no conv layer at shortcut
-    # Arguments
+    
+    Arguments
+    ---------
         kernel_size: defualt 3, the kernel size of middle conv layer at main path
         filters: list of integers, the nb_filters of 3 conv layer at main path
         stage: integer, current stage label, used for generating layer names
@@ -131,7 +133,9 @@ def atrous_identity_block(kernel_size, filters, stage, block, weight_decay=0., a
 
 def atrous_conv_block(kernel_size, filters, stage, block, weight_decay=0., strides=(1, 1), atrous_rate=(2, 2), batch_momentum=0.99):
     '''conv_block is the block that has a conv layer at shortcut
-    # Arguments
+    
+    Arguments
+    ---------
         kernel_size: defualt 3, the kernel size of middle conv layer at main path
         filters: list of integers, the nb_filters of 3 conv layer at main path
         stage: integer, current stage label, used for generating layer names
