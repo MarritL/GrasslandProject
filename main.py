@@ -48,7 +48,7 @@ train_test_split(coordspath + coordsfilename, tiles_cv_file, tiles_test_file, n_
 """
 Initialize model
 """
-from models import ModelsClass
+from models.models import ModelsClass
 from tensorflow.keras import metrics
 from tensorflow.keras import optimizers
 
