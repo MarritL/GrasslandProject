@@ -24,7 +24,7 @@ Mehodology to create dataset:
 4. **train_val_split(...)**: In the training phase the trainingset is divided over k - folds that can be used for cross-validation. This split is again based on the original image. (e.g. 4 folds: train: n=63326 and validation n=20979). 
 
 ### Models
-**models.py**: models are organized in a class (ModelsClass), initialised with the imagesize and number of classes. Models can use blocks from **blocks.py**. A bilinearUpSampling class is saved separately in **BilinearUpSampling.py**.<\br>
+**models.py**: models are organized in a class (ModelsClass), initialised with the imagesize and number of classes. Models can use blocks from **blocks.py**. A bilinearUpSampling class is saved separately in **BilinearUpSampling.py**.<br/>
 At the moment the modelClass contains two models:
 * A modified ResNet50
 * UNet
