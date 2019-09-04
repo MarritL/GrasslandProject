@@ -5,13 +5,12 @@ Created on Mon Sep  2 10:45:11 2019
 
 @author: MLeenstra
 """
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.preprocessing.image import array_to_img
+
 import numpy as np
 import pandas as pd
 import random
-import matplotlib.pyplot as plt
-%matplotlib inline
+
+
 
 save_path = '/media/cordolo/FREECOM HDD/GrasslandProject/Patches/'
 images_path = save_path + 'images/'
