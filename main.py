@@ -63,7 +63,7 @@ dropoutrate = 0.2
 
 # init model
 models = ModelsClass(image_size, n_classes)
-unet = models.UNet(dropoutrate)
+unet = models.AtrousFCN_Resnet53_16s()
 optimizer = optimizers.Adam(lr,epsilon)
 unet.compile(optimizer=optimizer ,loss='categorical_crossentropy', metrics=[metrics.categorical_accuracy])
 
@@ -160,3 +160,4 @@ model = load_model(model_path)
 predictions = model.predict(patches)
 
 plot_predicted_patches(predictions[:6], gt_patches)
+

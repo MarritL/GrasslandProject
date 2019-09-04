@@ -21,6 +21,8 @@ class ModelsClass:
     def UNet(self, dropout_rate=0.5):
         """ Create a UNet with 4 times downsampling and 4 times upsampling
         
+        source: https://github.com/zhixuhao/unet/blob/master/model.py
+        
         arguments
         ---------
             dropout_rate: float between 0 and 1. default=0.5
