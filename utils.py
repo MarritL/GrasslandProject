@@ -352,7 +352,7 @@ def snap_tile(path, no_data_value =-9999, fill_value=0):
 
 
 ###############################################################################
-def umap_plot(pixel_values, labels):
+def umap_plot(pixel_values, labels, n_neighbors=15, min_dist=0.2, metric='euclidean', title=''):
     """ Create a UMAP reduced dimensionlity plot 
     
     eyword arguments:
@@ -364,23 +364,29 @@ def umap_plot(pixel_values, labels):
     
     To run e.g.
     umap_plot(umap_im, umap_gt)
-    """
+    """    
     # UMAP 
-    reducer = umap.UMAP()
+    reducer = umap.UMAP(
+            n_neighbors=n_neighbors, 
+            min_dist = min_dist,
+            metric = metric)
     embedding = reducer.fit_transform(pixel_values)
     
     # make sure the shape of the labels array is right
-    umap_gt_sq = np.squeeze(labels)
+    #umap_gt_sq = np.squeeze(labels)
+    umap_gt_sq = labels
     
     #plot
     colors = ['red','green','blue','purple','yellow']
     colors_map = umap_gt_sq[:,]
-    tare = [770,659,654,690,650]
-    for i, cl in enumerate(tare):
+    #tare = [770,659,654,690,650]
+    #for i, cl in enumerate(tare):
+    for cl in range(5):
         indices = np.where(colors_map==cl)
-        plt.scatter(embedding[indices,0], embedding[indices, 1], c=colors[i], label=[cl])
+        plt.scatter(embedding[indices,0], embedding[indices, 1], c=colors[cl], label=[cl])
     plt.legend()
-    plt.show()
+    plt.title(title)
+    plt.show() 
 
     
 def pca_plot(pixel_values, labels):
@@ -407,9 +413,10 @@ def pca_plot(pixel_values, labels):
     colors = ['red','green','blue','purple','yellow']
     colors_map = umap_gt_sq[:,]
     tare = [770,659,654,690,650]
-    for i, cl in enumerate(tare):
+    #for i, cl in enumerate(tare):
+    for cl in range(5):
         indices = np.where(colors_map==cl)
-        plt.scatter(principalComponents[indices,0], principalComponents[indices, 1], c=colors[i], label=[cl])
+        plt.scatter(principalComponents[indices,0], principalComponents[indices, 1], c=colors[cl], label=[cl])
     plt.legend()
     plt.show()
 

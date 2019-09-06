@@ -16,7 +16,7 @@ tiles_cv_file = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/fold
 tiles_test_file = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/folders_test.npy'
 model_savepath = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/Models/'
 
-patch_size=32
+patch_size=80
 classes = [638,659,654,650,770]
 channels = [0,1,2,3] 
 n_channels = len(channels)
@@ -57,13 +57,13 @@ patch_size_padded = patch_size*3
 image_size = (patch_size_padded, patch_size_padded, n_channels)
 
 # model parameters
-lr= 1e-2
-epsilon=13-8
-dropoutrate = 0.2
+lr= 1e-3
+epsilon=1e-8
+dropoutrate = 0.
 
 # init model
 models = ModelsClass(image_size, n_classes)
-unet = models.AtrousFCN_Resnet53_16s()
+unet = models.UNet(dropoutrate)
 optimizer = optimizers.Adam(lr,epsilon)
 unet.compile(optimizer=optimizer ,loss='categorical_crossentropy', metrics=[metrics.categorical_accuracy])
 
@@ -77,15 +77,15 @@ from datagenerator import DataGen
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 import h5py
 
-output_model_path = model_savepath +'/weights.{epoch:02d}-{val_loss:.4f}.hdf5'
+output_model_path = model_savepath +'/unet.{epoch:02d}-{val_loss:.4f}.hdf5'
 
 # init
 folds = 4
 kth_fold = 0
 
 # training setup
-batch_size = 20
-epochs=10
+batch_size = 64
+epochs=30
 checkpoint = ModelCheckpoint(output_model_path, monitor='val_loss', save_best_only=True, mode='min')
 stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, mode='min')
 
@@ -93,6 +93,8 @@ stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, mode='min')
 index_train, index_val = train_val_split(tiles_cv_file, coordspath + coordsfilename, folds, kth_fold) 
 n_patches_train = len(index_train)
 n_patches_val = len(index_val)
+n_patches_train = 1000
+n_patches_val = 1000
 
 # init datagenerator
 train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, shuffle=True, 
@@ -139,7 +141,8 @@ Predict patches
 
 from dataset import load_test_indices, get_patches
 from tensorflow.keras.models import load_model
-from plots import plot_predicted_patches
+from plots import plot_predicted_patches, plot_predicted_probabilities
+import numpy as np
 %matplotlib qt
 
 # init
@@ -159,5 +162,7 @@ model = load_model(model_path)
 
 predictions = model.predict(patches)
 
+plot_predicted_probabilities(predictions[:6], gt_patches, 5)
 plot_predicted_patches(predictions[:6], gt_patches)
+
 
