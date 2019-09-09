@@ -8,13 +8,13 @@ Created on Tue Sep  3 14:29:59 2019
 
 
 inputpath='/media/cordolo/elements/Data/'
-dtmpath = '/media/cordolo/FREECOM HDD/GrasslandProject/DTM/'
-coordspath='/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/'
+dtmpath = 'home/media/marrit/marrit/GrasslandProject/DTM/'
+coordspath='/home/marrit/GrasslandProject/input/files/'
 coordsfilename= 'patches.csv'
-patchespath = '/media/cordolo/FREECOM HDD/GrasslandProject/Patches/'
-tiles_cv_file = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/folders_cv.npy'
-tiles_test_file = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/folders_test.npy'
-model_savepath = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/Models/'
+patchespath = '/media/marrit/marrit/GrasslandProject/Patches/'
+tiles_cv_file = '/home/marrit/GrasslandProject/input/files/folders_cv.npy'
+tiles_test_file = '/home/marrit/GrasslandProject/input/files/folders_test.npy'
+model_savepath = '/home/marrit/GrasslandProject/output/models/'
 
 patch_size=80
 classes = [638,659,654,650,770]
@@ -60,12 +60,14 @@ image_size = (patch_size_padded, patch_size_padded, n_channels)
 lr= 1e-3
 epsilon=1e-8
 dropoutrate = 0.
+modelname = "UNet"
+reslution = "20cmx20cm"
 
 # init model
 models = ModelsClass(image_size, n_classes)
-unet = models.UNet(dropoutrate)
+model = models.UNet(dropoutrate) #change model here
 optimizer = optimizers.Adam(lr,epsilon)
-unet.compile(optimizer=optimizer ,loss='categorical_crossentropy', metrics=[metrics.categorical_accuracy])
+model.compile(optimizer=optimizer ,loss='categorical_crossentropy', metrics=[metrics.categorical_accuracy])
 
 
 #%% Train
@@ -77,7 +79,7 @@ from datagenerator import DataGen
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 import h5py
 
-output_model_path = model_savepath +'/unet.{epoch:02d}-{val_loss:.4f}.hdf5'
+output_model_path = model_savepath + modelname + '_' + resolution +'.{epoch:02d}-{val_loss:.4f}.hdf5'
 
 # init
 folds = 4
@@ -105,7 +107,7 @@ val_generator = DataGen(data_path = patchespath, n_patches = n_patches_val, shuf
                 patch_size=patch_size_padded, n_classes=n_classes, channels=channels)
 
 # run
-result = unet.fit_generator(generator=train_generator, validation_data=val_generator, epochs=epochs,callbacks=[checkpoint,stop]) 
+result = model.fit_generator(generator=train_generator, validation_data=val_generator, epochs=epochs,callbacks=[checkpoint,stop]) 
 
 #%% Test
 """
