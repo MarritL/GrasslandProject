@@ -139,8 +139,8 @@ def plot_patches(patch, gt, n_patches):
         plt_im = patch[i][:, :, index].astype(np.float64)
         
         # prepare gt plot
-        plt_gt  = np.zeros_like(gt, dtype=np.uint8)
-        plt_gt = np.argmax(gt, axis=2)
+        plt_gt  = np.zeros_like(gt[i], dtype=np.uint8)
+        plt_gt = np.argmax(gt[i], axis=2)
     
         # plot training image
         image = ax[0,i].imshow(plt_im)
