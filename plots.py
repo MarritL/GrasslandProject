@@ -136,17 +136,17 @@ def plot_patches(patch, gt, n_patches):
     for i in range(n_patches):
         
         # prepare RGB plot
-        plt_im = patch[:, :, index].astype(np.float64)
+        plt_im = patch[i][:, :, index].astype(np.float64)
         
         # prepare gt plot
         plt_gt  = np.zeros_like(gt, dtype=np.uint8)
         plt_gt = np.argmax(gt, axis=2)
     
         # plot training image
-        image = ax[0].imshow(plt_im)
+        image = ax[0,i].imshow(plt_im)
         
         # plot gt 
-        grtr = ax[1].imshow(plt_gt, cmap=cmap, vmin=0, vmax=4) #colors not right
+        grtr = ax[1,i].imshow(plt_gt, cmap=cmap, vmin=0, vmax=4)
     
     ep.draw_legend(grtr,titles=["tara0", "tara20", "tara50", "woods","no coltivable"],classes=[0, 1, 2, 3,4])
 

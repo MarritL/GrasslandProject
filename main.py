@@ -46,6 +46,19 @@ tile_to_patch(inputpath, coordspath, coordsfilename, dtmpath, patchespath,
 # split dataset in train + testset
 train_test_split(coordspath + coordsfilename, tiles_cv_file, tiles_test_file, n_test_tiles)
 
+#%%
+"""
+Check some of the generated patches
+"""
+from dataset import get_patches
+from plots import plot_patches
+from plots import plot_random_patches
+
+patches, gt = get_patches(patchespath, [0,1,2,3,4,5], 480, [0,1,2])
+
+plot_patches(patches, gt, 6)
+
+
 #%% Initialize
 """
 Initialize model

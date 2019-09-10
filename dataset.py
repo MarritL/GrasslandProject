@@ -657,6 +657,26 @@ def load_test_indices(tiles_test_file, coordsfile):
     return(index_test)
     
 def get_patches(patchespath, indices, patch_size_padded, channels):
+    """ load patches
+    
+    arguments
+    ---------
+        patchespatch: string
+            path to folder containing the patches
+        indices: list
+            indices of patches to load
+        patch_size_patddes: ubt
+            size of patch to extract, including padding.
+        channels: list
+            list with classes to be predicted
+            
+    return
+    ------
+        X: numpy.ndarray
+            patches stored in array of size (n_patches, patch_size, patch_size, n_channels)
+        y: numpy.ndarray
+            ground truth stored in array of size (n_patches, patch_size, patch_size, n_classes)    
+    """
     
     # Initialization
     n_channels = len(channels)
