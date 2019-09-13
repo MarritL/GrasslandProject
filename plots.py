@@ -11,12 +11,14 @@ import numpy as np
 from utils import list_files
 from matplotlib.colors import ListedColormap
 import earthpy.plot as ep
+from sklearn.metrics import confusion_matrix
+from sklearn.utils.multiclass import unique_labels
 
 # colormap
 colors = ['linen', 'lightgreen', 'green', 'darkgreen', 'yellow']
 cmap = ListedColormap(colors)
 
-def plot_random_patches(patches_path, n_patches):
+def plot_random_patches(patches_path, n_patches, classes, class_names):
     """ plot random patches with ground truth
     
     arguments
@@ -64,7 +66,7 @@ def plot_random_patches(patches_path, n_patches):
         # plot gt 
         grtr = ax[1,i].imshow(plt_gt, cmap=cmap, vmin=0, vmax=4) #colors not right
     
-    ep.draw_legend(grtr,titles=["tara0", "tara20", "tara50", "woods","no coltivable"],classes=[0, 1, 2, 3,4])
+    ep.draw_legend(grtr,titles=class_names,classes=classes)
 
 def plot_predicted_patches(predictions, groundtruth):
     """ plot predicted patches with ground truth
@@ -203,3 +205,85 @@ def plot_predicted_probabilities(predictions, groundtruth, n_classes):
         grtr = ax[6,i].imshow(plt_gt, cmap=cmap, vmin=0, vmax=4) 
     
     ep.draw_legend(im,titles=["tara0", "tara20", "tara50", "woods","no coltivable","not sure"],classes=[0, 1, 2, 3,4,5])
+    
+
+
+def plot_confusion_matrix(gt, pred, classes, class_names, normalize=False, axis = 1, title=None, cmap=plt.cm.Blues):
+    """
+    This function prints and plots the confusion matrix for images with one-hot encoded labels.
+    Normalization can be applied by setting `normalize=True`.
+    
+    arguments
+    ---------
+        gt: np.ndarray
+        pred: np.ndarray
+        classes: list
+        class_names: list
+        normalize: boolean
+            default=False 
+        axis: int: 0 or 1
+            default = 1 
+        title: string
+            default = None
+        cmap: matplotlib color map
+            default = plt.cm.Blues
+    
+    returns
+    -------
+        printed confusion table and plot
+    """
+    if not title:
+        if normalize:
+            title = 'Normalized confusion matrix'
+        else:
+            title = 'Confusion matrix, without normalization'
+    
+    y_true = np.zeros(gt.shape[:3], dtype=np.uint8)
+    y_pred = np.zeros(pred.shape[:3], dtype=np.uint8)
+    for i in range(gt.shape[0]):
+        y_true[i] = np.argmax(gt[i], axis=2)
+        y_pred[i] = np.argmax(pred[i], axis=2)
+
+    # Compute confusion matrix
+    cm = confusion_matrix(y_true.flatten(), y_pred.flatten(), labels=classes)
+    
+    # Only use the labels that appear in the data
+    #classes = classes[unique_labels(y_true.flatten(), y_pred.flatten())]
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=axis)[:, np.newaxis]
+        print("Normalized confusion matrix")
+    else:
+        print('Confusion matrix, without normalization')
+
+    print(cm)
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+    im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
+    ax.figure.colorbar(im, ax=ax)
+    # We want to show all ticks...
+    ax.set(xticks=np.arange(cm.shape[1]),
+           yticks=np.arange(cm.shape[0]),
+           # ... and label them with the respective list entries
+           xticklabels=class_names, yticklabels=class_names,
+           title=title,
+           ylabel='True label',
+           xlabel='Predicted label')
+
+    # Rotate the tick labels and set their alignment.
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+             rotation_mode="anchor")
+    
+#    ax.set_ylim(1.5, -.5)
+#     ax.set_ylim(len(variables) - .5, -.5)
+
+
+    # Loop over data dimensions and create text annotations.
+    fmt = '.2f' if normalize else 'd'
+    thresh = cm.max() / 2.
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            ax.text(j, i, format(cm[i, j], fmt),
+                    ha="center", va="center",
+                    color="white" if cm[i, j] > thresh else "black")
+    fig.tight_layout()
+    return ax

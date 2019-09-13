@@ -10,6 +10,7 @@ compute = "personal"
 patch_size=32
 patch_size_padded = patch_size*3
 classes = [638,659,654,650,770]
+class_names = ["tara0", "tara20", "tara50", "woods","no coltivable"]
 channels = [0,1,2,3] 
 n_channels = len(channels)
 n_classes = len(classes)
@@ -34,7 +35,7 @@ elif compute == "personal":
     patchespath = '/media/cordolo/marrit/GrasslandProject/Patches/'
     tiles_cv_file = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/folders_cv.npy'
     tiles_test_file = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/folders_test.npy'
-    model_savepath = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/output/models/'
+    model_savepath = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/Output/Models/'
 
 patchespath = patchespath + 'res_'+str(resolution) + '/'
 
@@ -73,7 +74,7 @@ patches, gt = get_patches(patchespath, [0,1,2,3,4,5], patch_size_padded, [0,1,2,
 
 plot_patches(patches, gt, 6)
 
-plot_random_patches(patchespath, 6) # full available patch_size (i.e. 480x480)
+plot_random_patches(patchespath, 6, class_names, classes) # full available patch_size (i.e. 480x480)
 
 
 #%% Initialize
@@ -149,15 +150,14 @@ Test the model on independent test set
 from dataset import load_test_indices
 from datagenerator import DataGen
 from tensorflow.keras.models import load_model
-from sklearn.metrics import confusion_matrix
 
 # init
-batch_size = 32
+batch_size = 4
 model_file = 'unet.02-1.5225.hdf5'
 model_path = model_savepath + model_file
 
 index_test = load_test_indices(tiles_test_file, coordspath + coordsfilename)
-n_patches_test = len(index_test)
+n_patches_test = 1000#len(index_test)
 
 test_generator = DataGen(data_path=patchespath, n_patches = n_patches_test, shuffle=True, 
                 augment=False, indices=index_test , batch_size=batch_size, 
@@ -168,6 +168,8 @@ model = load_model(model_path)
 evaluate = model.evaluate_generator(generator=test_generator,steps = 4)
 print('test loss, test acc:', evaluate)
 
+
+
 #%% Predict
 """
 Predict patches
@@ -175,7 +177,7 @@ Predict patches
 
 from dataset import load_test_indices, get_patches
 from tensorflow.keras.models import load_model
-from plots import plot_predicted_patches#, plot_predicted_probabilities
+from plots import plot_predicted_patches, plot_confusion_matrix#, plot_predicted_probabilities
 import numpy as np
 #%matplotlib qt
 
@@ -185,6 +187,10 @@ patch_size_padded = patch_size*3
 n = 6
 model_file = 'unet.02-1.5225.hdf5'
 model_path = model_savepath + model_file
+
+patch_size=32*5/2
+patch_size_padded = int(patch_size*3)
+model_path = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/Models/unet_1epoch_lr1e03.h5'
 
 index_test = load_test_indices(tiles_cv_file, coordspath + coordsfilename)
 index_predict = np.random.choice(index_test, n)
@@ -198,6 +204,12 @@ predictions = model.predict(patches)
 
 #plot_predicted_probabilities(predictions[:6], gt_patches, 5)
 plot_predicted_patches(predictions[:6], gt_patches)
+
+# Plot normalized confusion matrix
+plot_confusion_matrix(gt_patches, predictions, classes = [0,1,2,3,4], class_names=class_names, normalize=True,
+                      title='Normalized confusion matrix')
+
+
 
 #%%
 # extact classes
