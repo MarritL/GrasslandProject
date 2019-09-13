@@ -665,7 +665,7 @@ def get_patches(patchespath, indices, patch_size_padded, channels):
             path to folder containing the patches
         indices: list
             indices of patches to load
-        patch_size_patddes: ubt
+        patch_size_padded: ubt
             size of patch to extract, including padding.
         channels: list
             list with classes to be predicted
