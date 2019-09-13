@@ -31,9 +31,8 @@ def plot_random_patches(patches_path, n_patches):
         figure with n_patches plotted in first row and ground truth in second row.
     """
     
-    patchespath = '/media/cordolo/FREECOM HDD/GrasslandProject/Patches/'
-    images_path = patchespath + 'images/'
-    labels_path = patchespath + 'labels/'
+    images_path = patches_path + 'images/'
+    labels_path = patches_path + 'labels/'
     
     rows = 2
     cols = n_patches    
