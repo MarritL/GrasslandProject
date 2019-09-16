@@ -36,6 +36,7 @@ elif compute == "personal":
     tiles_cv_file = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/folders_cv.npy'
     tiles_test_file = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/folders_test.npy'
     model_savepath = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/Output/Models/'
+    log_dir = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/Output/logs/scalars/'
 
 patchespath = patchespath + 'res_'+str(resolution) + '/'
 
@@ -92,9 +93,9 @@ image_size = (patch_size_padded, patch_size_padded, n_channels)
 # model parameters
 modelname ="UNet"
 args = {
-  'dropout_rate': 0.,
+  'dropout_rate': 0.01,
   'weight_decay':0., 
-  'batch_momentum':0.9
+  'batch_momentum':0.0
 }
 lr= 1e-3
 epsilon=1e-8
@@ -104,32 +105,36 @@ model = models.all_models[modelname](image_size, n_classes, **args)
 optimizer = optimizers.Adam(lr, epsilon)
 model.compile(optimizer=optimizer ,loss='categorical_crossentropy', metrics=[metrics.categorical_accuracy])
 
-
-#%% Train
+#%% Train with subset for model optimization
 """ 
-Train model
+Train model with a smaller subset in order to optimize the hyperparameters
 """
-from dataset import train_val_split
+from time import localtime, strftime
+from matplotlib import pyplot as plt
+from dataset import train_val_split_subset
 from datagenerator import DataGen
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
+from plots import plot_history
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 import h5py
 
-output_model_path = model_savepath + modelname + '_res:' + str(resolution) +'.{epoch:02d}-{val_loss:.4f}.hdf5'
+output_model_path = model_savepath + modelname + 'subset_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + '_res:' + str(resolution) +"_epoch:.{epoch:02d}"+"_valloss:.{val_loss:.4f}.hdf5"
 
 # init
 folds = 4
 kth_fold = 0
+max_tiles = 80
 
 # training setup
 batch_size = 128
-epochs=30
+epochs=5
 checkpoint = ModelCheckpoint(output_model_path, monitor='val_loss', save_best_only=True, mode='min')
 stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, mode='min')
+#tensorboard = TensorBoard(log_dir = log_dir+'{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime()))
 
 # load train and validation set
-index_train, index_val = train_val_split(tiles_cv_file, coordspath + coordsfilename, folds, kth_fold) 
-n_patches_train = 1000#len(index_train)
-n_patches_val = 1000#len(index_val)
+index_train, index_val = train_val_split_subset(tiles_cv_file, coordspath + coordsfilename, folds, kth_fold, max_tiles) 
+n_patches_train = len(index_train)
+n_patches_val = len(index_val)
 
 # init datagenerator
 train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, shuffle=True, 
@@ -140,8 +145,55 @@ val_generator = DataGen(data_path = patchespath, n_patches = n_patches_val, shuf
                 patch_size=patch_size_padded, n_classes=n_classes, channels=channels)
 
 # run
-result = model.fit_generator(generator=train_generator, validation_data=val_generator, epochs=epochs,callbacks=[checkpoint,stop]) 
+result = model.fit_generator(generator=train_generator, validation_data=val_generator, epochs=epochs,callbacks=[checkpoint,stop])#,tensorboard]) 
 
+# plot training history
+plot_history(result)
+
+
+#%% Train
+""" 
+Train model
+"""
+from time import localtime, strftime
+from matplotlib import pyplot as plt
+from dataset import train_val_split
+from datagenerator import DataGen
+from plots import plot_history
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
+import h5py
+
+output_model_path = model_savepath + modelname + '_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + '_res:' + str(resolution) +"_epoch:.{epoch:02d}"+"_valloss:.{val_loss:.4f}.hdf5"
+
+# init
+folds = 8 # for model test phase
+kth_fold = 0
+
+# training setup
+batch_size = 128
+epochs=5
+checkpoint = ModelCheckpoint(output_model_path, monitor='val_loss', save_best_only=True, mode='min')
+stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, mode='min')
+#tensorboard = TensorBoard(log_dir = log_dir+'{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime()))
+
+# load train and validation set
+index_train, index_val = train_val_split(tiles_cv_file, coordspath + coordsfilename, folds, kth_fold) 
+n_patches_train = len(index_train)
+n_patches_val = len(index_val)
+
+# init datagenerator
+train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, shuffle=True, 
+                augment=True, indices=index_train , batch_size=batch_size, 
+                patch_size=patch_size_padded, n_classes=n_classes, channels=channels)
+val_generator = DataGen(data_path = patchespath, n_patches = n_patches_val, shuffle=True, 
+                augment=False, indices=index_val , batch_size=batch_size, 
+                patch_size=patch_size_padded, n_classes=n_classes, channels=channels)
+
+# run
+result = model.fit_generator(generator=train_generator, validation_data=val_generator, epochs=epochs,callbacks=[checkpoint,stop])#,tensorboard]) 
+
+# plot training history
+plot_history(result)
 
 #%% Test
 """
@@ -153,7 +205,7 @@ from tensorflow.keras.models import load_model
 
 # init
 batch_size = 4
-model_file = 'unet.02-1.5225.hdf5'
+model_file = 'UNet_1568628038.337777_res:20.02-1.6424.hdf5'
 model_path = model_savepath + model_file
 
 index_test = load_test_indices(tiles_test_file, coordspath + coordsfilename)
@@ -185,7 +237,7 @@ import numpy as np
 patch_size_padded = patch_size*3
 #patch_size_padded = 240
 n = 6
-model_file = 'unet.02-1.5225.hdf5'
+model_file = 'UNet_1568628038.337777_res:20.02-1.6424.hdf5'
 model_path = model_savepath + model_file
 
 patch_size=32*5/2
