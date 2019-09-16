@@ -257,7 +257,7 @@ def plot_confusion_matrix(gt, pred, classes, class_names, normalize=False, axis 
 
     print(cm)
 
-    fig, ax = plt.subplots(figsize=(10, 10))
+    fig, ax = plt.subplots(figsize=(6, 6))
     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
     ax.figure.colorbar(im, ax=ax)
     # We want to show all ticks...
@@ -273,10 +273,6 @@ def plot_confusion_matrix(gt, pred, classes, class_names, normalize=False, axis 
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
              rotation_mode="anchor")
     
-#    ax.set_ylim(1.5, -.5)
-#     ax.set_ylim(len(variables) - .5, -.5)
-
-
     # Loop over data dimensions and create text annotations.
     fmt = '.2f' if normalize else 'd'
     thresh = cm.max() / 2.
@@ -287,3 +283,20 @@ def plot_confusion_matrix(gt, pred, classes, class_names, normalize=False, axis 
                     color="white" if cm[i, j] > thresh else "black")
     fig.tight_layout()
     return ax
+
+
+def plot_history(network_history):
+    plt.figure()
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.plot(network_history.history['loss'])
+    plt.plot(network_history.history['val_loss'])
+    plt.legend(['Training', 'Validation'])
+
+    plt.figure()
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.plot(network_history.history['categorical_accuracy'])
+    plt.plot(network_history.history['val_categorical_accuracy'])
+    plt.legend(['Training', 'Validation'], loc='lower right')
+    plt.show()
