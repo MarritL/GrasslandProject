@@ -293,16 +293,16 @@ def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classe
     elif resolution == 1:
         warpedtile = None
         #for idx, tile in enumerate(coords[0]): 
-        for idx, d in enumerate(coords[0][78:85]):    
+        for idx, d in enumerate(coords[0]):    
             # resample rgb + nir to 1m (keep in memory (no space on disk))
             if not d == warpedtile:
                 print(d)
-                shadow_file = inputpath + d + '/dtm135.tif'
+                dtm_file = inputpath + d + '/dtm135.tif'
                 nir_file = inputpath + d + '/' + d + '_NIR.tif'
                 rgb_file = inputpath + d + '/' + d + '_RGB.tif'
                 gt_file = inputpath + d + '/tare.tif'
                 
-                ds = gdal.Open(shadow_file)
+                ds = gdal.Open(dtm_file)
                 width = ds.RasterXSize
                 height = ds.RasterYSize 
                 nir_1m = gdal.Warp("", nir_file, format='mem', width=width, height=height, resampleAlg=1)
@@ -312,7 +312,7 @@ def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classe
                 ds = None       
             
             # extract patches
-            im, gt = read_patch_1m(rgb_1m, nir_1m, dtmpath, gt_1m, coords, patch_size_padded, idx, classes)
+            im, gt = read_patch_1m(rgb_1m, nir_1m, dtm_file, gt_1m, coords, patch_size_padded, idx, classes)     
             np.save(imagespath + str(idx)+'.npy', im)
             np.save(labelspath + str(idx) + '.npy', gt)
             if idx % 500 == 0: 
@@ -378,14 +378,14 @@ def sample_patches_of_class(population, population_all, patches_per_tile, cl, gt
                     n_samples==0
                     break
 
-def read_patch_1m(inputRGB, inputNIR, dtmpath, inputGT, coords_df, patch_size_padded, idx, classes):
+def read_patch_1m(inputRGB, inputNIR, inputDTMfile, inputGT, coords_df, patch_size_padded, idx, classes):
     """ load patch based on left-top coordinate
     
     Parameters
     ----------
         inputpath: string
             path to the folder containing dataset
-        dtmpath: string
+        patchespath: string
             path to folder containing the resampled dtm 
         coords_df: pandas.dataframe
             dataframe with coordinates in the format [tile, r (=left), c (=top)]
@@ -412,8 +412,8 @@ def read_patch_1m(inputRGB, inputNIR, dtmpath, inputGT, coords_df, patch_size_pa
     n_features = 5 #R,G,B, NIR, DTM
     
     folder, r, c = coords_df.iloc[idx]
-    r = int(r)*5
-    c = int(c)*5
+    r = int(r)
+    c = int(c)
 
     patch = np.zeros([patch_size_padded,patch_size_padded,n_features],dtype=np.float16)
     
@@ -422,7 +422,7 @@ def read_patch_1m(inputRGB, inputNIR, dtmpath, inputGT, coords_df, patch_size_pa
     # needed for resampling of dtm 
     for x in range(1, ds.RasterCount + 1):
         band = ds.GetRasterBand(x)
-        patch[:,:,x-1] = band.ReadAsArray(c,r,patch_size_padded, patch_size_padded)
+        patch[:,:,x-1] = band.ReadAsArray(c,r,int(patch_size_padded), int(patch_size_padded))
 
     # NIR
     ds = inputNIR
@@ -430,7 +430,7 @@ def read_patch_1m(inputRGB, inputNIR, dtmpath, inputGT, coords_df, patch_size_pa
     patch[:,:,3] = band.ReadAsArray(c, r, patch_size_padded, patch_size_padded)
 
     # DTM
-    ds = gdal.Open(dtmpath + folder + '/dtm135.tif' ,gdal.GA_ReadOnly)
+    ds = gdal.Open(inputDTMfile, gdal.GA_ReadOnly)
     band = ds.GetRasterBand(1)
     patch[:,:,4] = band.ReadAsArray(c, r, patch_size_padded, patch_size_padded)
 

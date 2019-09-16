@@ -6,7 +6,7 @@ Created on Tue Sep  3 14:29:59 2019
 @author: MLeenstra
 """
 
-compute = "personal"
+compute = "optimus"
 patch_size=32
 patch_size_padded = patch_size*3
 classes = [638,659,654,650,770]
@@ -14,16 +14,16 @@ class_names = ["tara0", "tara20", "tara50", "woods","no coltivable"]
 channels = [0,1,2,3] 
 n_channels = len(channels)
 n_classes = len(classes)
-resolution = 20 #1 for 1m; 20 for 20cm
+resolution = 1 #1 for 1m; 20 for 20cm
 
 
 # set paths according to computer
 if compute == "optimus":
-    inputpath='/home/media/marrit/elements/Data/'
-    dtmpath = 'home/media/marrit/marrit/GrasslandProject/DTM/'
+    inputpath='/marrit2/Data/'
+    dtmpath = 'marrit1/GrasslandProject/DTM/'
     coordspath='/home/marrit/GrasslandProject/input/files/'
     coordsfilename= 'patches.csv'
-    patchespath = '/media/marrit/marrit/GrasslandProject/Patches/'
+    patchespath = '/marrit1/GrasslandProject/Patches/'
     tiles_cv_file = '/home/marrit/GrasslandProject/input/files/folders_cv.npy'
     tiles_test_file = '/home/marrit/GrasslandProject/input/files/folders_test.npy'
     model_savepath = '/home/marrit/GrasslandProject/output/models/'
@@ -40,7 +40,18 @@ elif compute == "personal":
 
 patchespath = patchespath + 'res_'+str(resolution) + '/'
 
+#%% Generate 1m dataset
+from dataset import csv_to_patch
 
+coordsfile = coordspath+coordsfilename
+csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classes, resolution)
+inputpath = inputpath 
+dtmpath = dtmpath
+patchespath = patchespath
+coordsfile = coordsfile
+patch_size = patch_size
+classes = classes
+resolution = resolution
 
 #%% Generate dataset
 """
