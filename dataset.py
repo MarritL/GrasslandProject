@@ -290,7 +290,7 @@ def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classe
             if idx % 500 == 0: 
                 print('\r {}/{}'.format(idx, len(coords)),end='')
     
-    else:
+    elif resolution == 1:
         warpedtile = None
         #for idx, tile in enumerate(coords[0]): 
         for idx, d in enumerate(coords[0][78:85]):    
@@ -317,7 +317,8 @@ def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classe
             np.save(labelspath + str(idx) + '.npy', gt)
             if idx % 500 == 0: 
                 print('\r {}/{}'.format(idx, len(coords)),end='')            
-        
+    else:
+        print("Only resoltions of 20cmx20xm (20) and 1mx1m (1) are supported.")
 
     
 
@@ -614,6 +615,48 @@ def train_val_split(tiles_cv_file, coordsfile, folds, k):
     coords_df = coords_df['tiles']
     
     tiles = np.load(tiles_cv_file, allow_pickle=True)
+    tiles_per_fold = int(len(tiles)/folds)
+    
+    # train / val split  
+    valtiles = tiles[k*tiles_per_fold:(k+1)*tiles_per_fold]
+    traintiles = tiles[np.isin(tiles, valtiles) == False]
+    
+    # find indices
+    coords_val = coords_df[np.isin(coords_df, valtiles)]
+    coords_train = coords_df[np.isin(coords_df, traintiles)]
+    
+    index_val = np.array(coords_val.index)
+    index_train = np.array(coords_train.index)
+    
+    return(index_train, index_val)
+    
+def train_val_split_subset(tiles_cv_file, coordsfile, folds, k, max_tiles):    
+    """ select indices of train and validation patches in coordfile
+    
+    arguments
+    ---------
+        tiles_cv_file: string
+            path to file where the tilenames for cross-validation are saved
+        coordsfile: string
+            path to file where the coordinates are saved
+        folds: int
+            number of folds
+        k: int
+            fold to return, first fold is 0.
+            
+    return
+    ------
+        index_train: numpy ndarray
+            indices of train patches in coordsfile
+        index_val: numpy ndarray
+            indices of validation patches in coordsfile
+     
+    """
+    coords_df = pd.read_csv(coordsfile, sep=',',header=None, names=['tiles', 'row', 'col'])
+    coords_df = coords_df['tiles']
+    
+    tiles = np.load(tiles_cv_file, allow_pickle=True)
+    tiles = tiles[:max_tiles]
     tiles_per_fold = int(len(tiles)/folds)
     
     # train / val split  
