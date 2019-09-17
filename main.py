@@ -267,7 +267,7 @@ patches, gt_patches = get_patches(patchespath, index_test[:6], patch_size_padded
 # plots
 plot_predicted_patches(predictions[:6], gt_patches)
 cm = compute_confusion_matrix(gt_patches, predictions[:6], classes=[0,1,2,3,4], class_names=class_names)
-mcc = compute_matthews_corrcoef(gt_pathces, predictions[:6])
+mcc = compute_matthews_corrcoef(gt_patches, predictions[:6])
 cm
 mcc
 # =============================================================================
