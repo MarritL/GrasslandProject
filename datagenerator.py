@@ -12,7 +12,7 @@ import tensorflow.keras as keras
 class DataGen(keras.utils.Sequence):
     'Generates data for Keras'   
     
-    def __init__(self, data_path, n_patches, shuffle, augment, indices, batch_size=128, patch_size=480, n_classes=5, channels=[0,1,2,3,4]):
+    def __init__(self, data_path, n_patches, shuffle, augment, indices, batch_size=128, patch_size=480, n_classes=5, channels=[0,1,2,3,4], resolution=20):
         'Initialization'
         self.data_path = data_path
         self.batch_size = batch_size        
@@ -24,6 +24,7 @@ class DataGen(keras.utils.Sequence):
         self.shuffle = shuffle
         self.augment = augment
         self.indices = indices
+        self.resolution = resolution
         self.on_epoch_end()
     
     def __len__(self):
@@ -48,8 +49,13 @@ class DataGen(keras.utils.Sequence):
         'Generates data containing batch_size samples'
                 
         # Initialization
-        X = np.zeros((self.batch_size, 480, 480, 5), dtype=np.float16) 
-        y = np.zeros((self.batch_size, 480, 480, 5), dtype=np.int8)
+        if self.resolution == 20:
+            X = np.zeros((self.batch_size, 480, 480, 5), dtype=np.float16) 
+            y = np.zeros((self.batch_size, 480, 480, 5), dtype=np.int8)
+        elif self.resolution == 1:
+            X = np.zeros((self.batch_size, 96, 96, 5), dtype=np.float16) 
+            y = np.zeros((self.batch_size, 96, 96, 5), dtype=np.int8)
+            
         
         for i, idx in enumerate(list_idx_temp):
             
