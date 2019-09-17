@@ -45,13 +45,6 @@ from dataset import csv_to_patch
 
 coordsfile = coordspath+coordsfilename
 csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classes, resolution)
-inputpath = inputpath 
-dtmpath = dtmpath
-patchespath = patchespath
-coordsfile = coordsfile
-patch_size = patch_size
-classes = classes
-resolution = resolution
 
 #%% Generate dataset
 """
@@ -82,7 +75,7 @@ from dataset import get_patches
 from plots import plot_patches
 from plots import plot_random_patches
 
-patches, gt = get_patches(patchespath, [0,1,2,3,4,5], patch_size_padded, [0,1,2,3,4])
+patches, gt = get_patches(patchespath, [0,1,2,3,4,5], patch_size_padded, [0,1,2,3,4], resolution)
 
 plot_patches(patches, gt, 6)
 

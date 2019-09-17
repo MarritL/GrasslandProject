@@ -699,7 +699,7 @@ def load_test_indices(tiles_test_file, coordsfile):
     
     return(index_test)
     
-def get_patches(patchespath, indices, patch_size_padded, channels):
+def get_patches(patchespath, indices, patch_size_padded, channels, resolution):
     """ load patches
     
     arguments
@@ -712,6 +712,8 @@ def get_patches(patchespath, indices, patch_size_padded, channels):
             size of patch to extract, including padding.
         channels: list
             list with classes to be predicted
+        resolution: int
+            either 1 for 1m or 20 for 20cm
             
     return
     ------
@@ -724,8 +726,12 @@ def get_patches(patchespath, indices, patch_size_padded, channels):
     # Initialization
     n_channels = len(channels)
     n_patches = len(indices)
-    X = np.zeros((n_patches, 480, 480, 5), dtype=np.float16) 
-    y = np.zeros((n_patches, 480, 480, 5), dtype=np.int8)
+    if resolution == 20:
+        X = np.zeros((n_patches, 480, 480, 5), dtype=np.float16) 
+        y = np.zeros((n_patches, 480, 480, 5), dtype=np.int8)
+    elif resolution == 1:
+        X = np.zeros((n_patches, 96, 96, 5), dtype=np.float16) 
+        y = np.zeros((n_patches, 96, 96, 5), dtype=np.int8)
     
     for i, idx in enumerate(indices):
         #load patch
