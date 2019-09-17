@@ -38,13 +38,7 @@ elif compute == "personal":
     model_savepath = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/Output/Models/'
     log_dir = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/Output/logs/scalars/'
 
-patchespath = patchespath + 'res_'+str(resolution) + '/'
-
-#%% Generate 1m dataset
-from dataset import csv_to_patch
-
-coordsfile = coordspath+coordsfilename
-csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classes, resolution)
+patchespath = patchespath + 'res_' + str(resolution) + '/'
 
 #%% Generate dataset
 """
@@ -52,7 +46,7 @@ Generate the dataset by extracting patches from the tiles. These patches are
 divided over a training and test set, based on the original tiles.
 """
 
-from dataset import tile_to_patch, train_test_split
+from dataset import tile_to_patch, train_test_split, csv_to_patch
 
 # init
 patches_per_tile = 200
@@ -61,8 +55,11 @@ n_test_tiles = 97 # to use all folders when using 4-fold CV
 
 # generate dataset (patches) at 20cm resolution
 tile_to_patch(inputpath, coordspath, coordsfilename, dtmpath, patchespath, 
-              patch_size, patches_per_tile, classes, resolution)
+              patch_size, patches_per_tile, classes, 20)
 
+# generate dataset (patches) at 1m resolution 
+coordsfile = coordspath+coordsfilename
+csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classes, 1)
 
 # split dataset in train + testset
 train_test_split(coordspath + coordsfilename, tiles_cv_file, tiles_test_file, n_test_tiles)
@@ -79,8 +76,7 @@ patches, gt = get_patches(patchespath, [0,1,2,3,4,5], patch_size_padded, [0,1,2,
 
 plot_patches(patches, gt, 6)
 
-plot_random_patches(patchespath, 6, class_names, classes) # full available patch_size (i.e. 480x480)
-
+plot_random_patches(patchespath, 6, class_names, classes) # full available patch_size (e.g. 480x480 for 20x20cm resolution)
 
 #%% Initialize
 """
@@ -121,12 +117,18 @@ from plots import plot_history
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 import h5py
 
-output_model_path = model_savepath + modelname + 'subset_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + '_res:' + str(resolution) +"_epoch:.{epoch:02d}"+"_valloss:.{val_loss:.4f}.hdf5"
+output_model_path = model_savepath + modelname + \
+    'subset_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + \
+    '_res:' + str(resolution) +"_epoch:.{epoch:02d}"+"_valloss:.{val_loss:.4f}.hdf5"
 
 # init
 folds = 4
 kth_fold = 0
 max_tiles = 80
+if resolution == 1:
+    max_size = 96
+elif resolution == 20:
+    max_size = 480
 
 # training setup
 batch_size = 128
@@ -136,20 +138,24 @@ stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, mode='min')
 #tensorboard = TensorBoard(log_dir = log_dir+'{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime()))
 
 # load train and validation set
-index_train, index_val = train_val_split_subset(tiles_cv_file, coordspath + coordsfilename, folds, kth_fold, max_tiles) 
+index_train, index_val = train_val_split_subset(tiles_cv_file, coordspath + 
+                coordsfilename, folds, kth_fold, max_tiles) 
 n_patches_train = len(index_train)
 n_patches_val = len(index_val)
 
 # init datagenerator
-train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, shuffle=True, 
-                augment=True, indices=index_train , batch_size=batch_size, 
-                patch_size=patch_size_padded, n_classes=n_classes, channels=channels)
-val_generator = DataGen(data_path = patchespath, n_patches = n_patches_val, shuffle=True, 
-                augment=False, indices=index_val , batch_size=batch_size, 
-                patch_size=patch_size_padded, n_classes=n_classes, channels=channels)
+train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, 
+                shuffle=True, augment=True, indices=index_train , 
+                batch_size=batch_size, patch_size=patch_size_padded, 
+                n_classes=n_classes, channels=channels, max_size=max_size)
+val_generator = DataGen(data_path = patchespath, n_patches = n_patches_val, 
+                shuffle=True, augment=False, indices=index_val , 
+                batch_size=batch_size, patch_size=patch_size_padded, 
+                n_classes=n_classes, channels=channels, max_size=max_size)
 
 # run
-result = model.fit_generator(generator=train_generator, validation_data=val_generator, epochs=epochs,callbacks=[checkpoint,stop])#,tensorboard]) 
+result = model.fit_generator(generator=train_generator, validation_data=val_generator, 
+                epochs=epochs,callbacks=[checkpoint,stop])#,tensorboard]) 
 
 # plot training history
 plot_history(result)
@@ -167,11 +173,17 @@ from plots import plot_history
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 import h5py
 
-output_model_path = model_savepath + modelname + '_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + '_res:' + str(resolution) +"_epoch:.{epoch:02d}"+"_valloss:.{val_loss:.4f}.hdf5"
+output_model_path = model_savepath + modelname + \
+    '_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + \
+    '_res:' + str(resolution) +"_epoch:.{epoch:02d}"+"_valloss:.{val_loss:.4f}.hdf5"
 
 # init
 folds = 8 # for model test phase
 kth_fold = 0
+if resolution == 1:
+    max_size = 96
+elif resolution == 20:
+    max_size = 480
 
 # training setup
 batch_size = 128
@@ -186,15 +198,18 @@ n_patches_train = len(index_train)
 n_patches_val = len(index_val)
 
 # init datagenerator
-train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, shuffle=True, 
-                augment=True, indices=index_train , batch_size=batch_size, 
-                patch_size=patch_size_padded, n_classes=n_classes, channels=channels)
-val_generator = DataGen(data_path = patchespath, n_patches = n_patches_val, shuffle=True, 
-                augment=False, indices=index_val , batch_size=batch_size, 
-                patch_size=patch_size_padded, n_classes=n_classes, channels=channels)
+train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, 
+                shuffle=True, augment=True, indices=index_train , 
+                batch_size=batch_size, patch_size=patch_size_padded, 
+                n_classes=n_classes, channels=channels, max_size=max_size)
+val_generator = DataGen(data_path = patchespath, n_patches = n_patches_val, 
+                shuffle=True, augment=False, indices=index_val , 
+                batch_size=batch_size, patch_size=patch_size_padded, 
+                n_classes=n_classes, channels=channels, max_size=max_size)
 
 # run
-result = model.fit_generator(generator=train_generator, validation_data=val_generator, epochs=epochs,callbacks=[checkpoint,stop])#,tensorboard]) 
+result = model.fit_generator(generator=train_generator, validation_data=val_generator, 
+                epochs=epochs,callbacks=[checkpoint,stop])#,tensorboard]) 
 
 # plot training history
 plot_history(result)
