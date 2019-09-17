@@ -14,7 +14,11 @@ class_names = ["tara0", "tara20", "tara50", "woods","no coltivable"]
 channels = [0,1,2,3] 
 n_channels = len(channels)
 n_classes = len(classes)
-resolution = 1 #1 for 1m; 20 for 20cm
+resolution = 20 #1 for 1m; 20 for 20cm
+if resolution == 1:
+    max_size = 96
+elif resolution == 20:
+    max_size = 480
 
 
 # set paths according to computer
@@ -91,13 +95,13 @@ patch_size_padded = patch_size*3
 image_size = (patch_size_padded, patch_size_padded, n_channels)
 
 # model parameters
-modelname ="UNet"
+modelname ="ResNet"
 args = {
-  'dropout_rate': 0.01,
-  'weight_decay':0., 
-  'batch_momentum':0.0
+  'dropout_rate': 0.,
+  'weight_decay':0.8, 
+  'batch_momentum':0.9
 }
-lr= 1e-3
+lr= 1e-6
 epsilon=1e-8
 
 # init model
@@ -125,27 +129,23 @@ output_model_path = model_savepath + modelname + \
 folds = 4
 kth_fold = 0
 max_tiles = 80
-if resolution == 1:
-    max_size = 96
-elif resolution == 20:
-    max_size = 480
 
 # training setup
 batch_size = 128
-epochs=5
+epochs=1
 checkpoint = ModelCheckpoint(output_model_path, monitor='val_loss', save_best_only=True, mode='min')
 stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, mode='min')
 #tensorboard = TensorBoard(log_dir = log_dir+'{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime()))
 
 # load train and validation set
 index_train, index_val = train_val_split_subset(tiles_cv_file, coordspath + 
-                coordsfilename, folds, kth_fold, max_tiles) 
+                coordsfilename, folds, kth_fold, max_tiles)
 n_patches_train = len(index_train)
 n_patches_val = len(index_val)
 
 # init datagenerator
 train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, 
-                shuffle=True, augment=True, indices=index_train , 
+                shuffle=True, augment=False, indices=index_train , 
                 batch_size=batch_size, patch_size=patch_size_padded, 
                 n_classes=n_classes, channels=channels, max_size=max_size)
 val_generator = DataGen(data_path = patchespath, n_patches = n_patches_val, 
@@ -180,10 +180,6 @@ output_model_path = model_savepath + modelname + \
 # init
 folds = 8 # for model test phase
 kth_fold = 0
-if resolution == 1:
-    max_size = 96
-elif resolution == 20:
-    max_size = 480
 
 # training setup
 batch_size = 128
@@ -223,8 +219,8 @@ from datagenerator import DataGen
 from tensorflow.keras.models import load_model
 
 # init
-batch_size = 4
-model_file = 'UNet_1568628038.337777_res:20.02-1.6424.hdf5'
+batch_size = 125
+model_file = 'UNetsubset_17092019_09:38:03_res:1_epoch:.05_valloss:.1.2534.hdf5'
 model_path = model_savepath + model_file
 
 index_test = load_test_indices(tiles_test_file, coordspath + coordsfilename)
@@ -232,18 +228,52 @@ n_patches_test = 1000#len(index_test)
 
 test_generator = DataGen(data_path=patchespath, n_patches = n_patches_test, shuffle=True, 
                 augment=False, indices=index_test , batch_size=batch_size, 
-                patch_size=patch_size_padded, n_classes=n_classes, channels=channels)
+                patch_size=patch_size_padded, n_classes=n_classes, channels=channels, max_size=max_size)
 
 model = load_model(model_path)
 
-evaluate = model.evaluate_generator(generator=test_generator,steps = 4)
+evaluate = model.evaluate_generator(generator=test_generator)
 print('test loss, test acc:', evaluate)
+
+#%% Predict
+"""
+Predict patches
+"""
+from dataset import load_test_indices, get_patches
+from datagenerator import DataGen
+from tensorflow.keras.models import load_model
+from plots import plot_predicted_patches, plot_confusion_matrix#, plot_predicted_probabilities
+
+
+# init
+batch_size = 25
+model_file = 'UNetsubset_17092019_09:38:03_res:1_epoch:.05_valloss:.1.2534.hdf5'
+model_path = model_savepath + model_file
+
+
+index_test = load_test_indices(tiles_test_file, coordspath + coordsfilename)
+n_patches_test = 100#len(index_test)
+
+test_generator = DataGen(data_path=patchespath, n_patches = n_patches_test, shuffle=False, 
+                augment=False, indices=index_test , batch_size=batch_size, 
+                patch_size=patch_size_padded, n_classes=n_classes, channels=channels, max_size=max_size)
+
+model = load_model(model_path)
+
+predictions = model.predict_generator(generator=test_generator)
+patches, gt_patches = get_patches(patchespath, index_test[80:86], patch_size_padded, channels, resolution=resolution)
+
+# plots
+plot_predicted_patches(predictions[80:86], gt_patches)
+plot_confusion_matrix(gt_patches, predictions[80:86], classes = [0,1,2,3,4], class_names=class_names, normalize=True,
+                      title='Normalized confusion matrix')
+
 
 
 
 #%% Predict
 """
-Predict patches
+Predict small amount of patches
 """
 
 from dataset import load_test_indices, get_patches
@@ -253,25 +283,20 @@ import numpy as np
 #%matplotlib qt
 
 # init
-patch_size_padded = patch_size*3
-#patch_size_padded = 240
 n = 6
 model_file = 'UNet_1568628038.337777_res:20.02-1.6424.hdf5'
 model_path = model_savepath + model_file
-
-patch_size=32*5/2
-patch_size_padded = int(patch_size*3)
 model_path = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/Models/unet_1epoch_lr1e03.h5'
 
 index_test = load_test_indices(tiles_cv_file, coordspath + coordsfilename)
 index_predict = np.random.choice(index_test, n)
 index_predict = [k for k in index_predict]
 
-patches, gt_patches = get_patches(patchespath, index_predict, patch_size_padded, channels)
+patches, gt_patches = get_patches(patchespath, index_predict, patch_size_padded, channels, resolution=resolution)
 
 model = load_model(model_path)
 
-predictions = model.predict(patches)
+predictions = model.predict_generator(patches)
 
 #plot_predicted_probabilities(predictions[:6], gt_patches, 5)
 plot_predicted_patches(predictions[:6], gt_patches)

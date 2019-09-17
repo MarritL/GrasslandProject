@@ -711,7 +711,7 @@ def get_patches(patchespath, indices, patch_size_padded, channels, resolution):
         patch_size_padded: ubt
             size of patch to extract, including padding.
         channels: list
-            list with classes to be predicted
+            list with channels in the image to use for prediction to be predicted
         resolution: int
             either 1 for 1m or 20 for 20cm
             
