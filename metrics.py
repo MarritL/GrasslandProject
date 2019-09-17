@@ -71,7 +71,7 @@ def compute_confusion_matrix(gt, pred, classes, class_names, user_producer=True,
     
     return(cm)
     
-def compute_mattehws_corrcoef(gt, pred):
+def compute_matthews_corrcoef(gt, pred):
     """Compute the Matthews correlation coefficient (MCC)
     
     arguments

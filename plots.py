@@ -11,8 +11,6 @@ import numpy as np
 from utils import list_files
 from matplotlib.colors import ListedColormap
 import earthpy.plot as ep
-from sklearn.metrics import confusion_matrix
-from sklearn.utils.multiclass import unique_labels
 import umap
 from sklearn.decomposition import PCA
 
@@ -30,7 +28,7 @@ def plot_random_patches(patches_path, n_patches, classes, class_names):
         n_patches: int
             number of random patches to plot
         classes: list
-        
+            list of predicted classes
         class_names: list
             
     output
@@ -217,21 +215,19 @@ def plot_predicted_probabilities(predictions, groundtruth, n_classes):
     
 
 
-def plot_confusion_matrix(gt, pred, classes, class_names, normalize=False, axis = 1, title=None, cmap=plt.cm.Blues):
+def plot_confusion_matrix(cm, class_names, normalize = True, title=None, cmap=plt.cm.Blues):
     """
     This function prints and plots the confusion matrix for images with one-hot encoded labels.
     Normalization can be applied by setting `normalize=True`.
     
     arguments
     ---------
-        gt: np.ndarray
-        pred: np.ndarray
-        classes: list
+        cm: numpy.ndarray
+            confusion matrix
         class_names: list
+            class labels for confusion matrix
         normalize: boolean
-            default=False 
-        axis: int: 0 or 1
-            default = 1 
+            default=True
         title: string
             default = None
         cmap: matplotlib color map
@@ -239,32 +235,10 @@ def plot_confusion_matrix(gt, pred, classes, class_names, normalize=False, axis 
     
     returns
     -------
-        printed confusion table and plot
+        plot of confusion table
     """
     if not title:
-        if normalize:
-            title = 'Normalized confusion matrix'
-        else:
-            title = 'Confusion matrix, without normalization'
-    
-    y_true = np.zeros(gt.shape[:3], dtype=np.uint8)
-    y_pred = np.zeros(pred.shape[:3], dtype=np.uint8)
-    for i in range(gt.shape[0]):
-        y_true[i] = np.argmax(gt[i], axis=2)
-        y_pred[i] = np.argmax(pred[i], axis=2)
-
-    # Compute confusion matrix
-    cm = confusion_matrix(y_true.flatten(), y_pred.flatten(), labels=classes)
-    
-    # Only use the labels that appear in the data
-    #classes = classes[unique_labels(y_true.flatten(), y_pred.flatten())]
-    if normalize:
-        cm = cm.astype('float') / cm.sum(axis=axis)[:, np.newaxis]
-        print("Normalized confusion matrix")
-    else:
-        print('Confusion matrix, without normalization')
-
-    print(cm)
+        title = 'Confusion matrix'
 
     fig, ax = plt.subplots(figsize=(6, 6))
     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)

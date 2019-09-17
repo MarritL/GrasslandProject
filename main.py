@@ -98,10 +98,10 @@ image_size = (patch_size_padded, patch_size_padded, n_channels)
 modelname ="ResNet"
 args = {
   'dropout_rate': 0.,
-  'weight_decay':0.8, 
-  'batch_momentum':0.9
+  'weight_decay':0., 
+  'batch_momentum':0.
 }
-lr= 1e-6
+lr= 1e-3
 epsilon=1e-8
 
 # init model
@@ -132,7 +132,7 @@ max_tiles = 80
 
 # training setup
 batch_size = 128
-epochs=1
+epochs=3
 checkpoint = ModelCheckpoint(output_model_path, monitor='val_loss', save_best_only=True, mode='min')
 stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, mode='min')
 #tensorboard = TensorBoard(log_dir = log_dir+'{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime()))
@@ -145,7 +145,7 @@ n_patches_val = len(index_val)
 
 # init datagenerator
 train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, 
-                shuffle=True, augment=False, indices=index_train , 
+                shuffle=True, augment=True, indices=index_train , 
                 batch_size=batch_size, patch_size=patch_size_padded, 
                 n_classes=n_classes, channels=channels, max_size=max_size)
 val_generator = DataGen(data_path = patchespath, n_patches = n_patches_val, 
@@ -242,7 +242,8 @@ Predict patches
 from dataset import load_test_indices, get_patches
 from datagenerator import DataGen
 from tensorflow.keras.models import load_model
-from plots import plot_predicted_patches, plot_confusion_matrix#, plot_predicted_probabilities
+from plots import plot_predicted_patches#, plot_confusion_matrix, plot_predicted_probabilities
+from metrics import compute_confusion_matrix, compute_matthews_corrcoef
 
 
 # init
@@ -261,12 +262,18 @@ test_generator = DataGen(data_path=patchespath, n_patches = n_patches_test, shuf
 model = load_model(model_path)
 
 predictions = model.predict_generator(generator=test_generator)
-patches, gt_patches = get_patches(patchespath, index_test[80:86], patch_size_padded, channels, resolution=resolution)
+patches, gt_patches = get_patches(patchespath, index_test[:6], patch_size_padded, channels, resolution=resolution)
 
 # plots
-plot_predicted_patches(predictions[80:86], gt_patches)
-plot_confusion_matrix(gt_patches, predictions[80:86], classes = [0,1,2,3,4], class_names=class_names, normalize=True,
-                      title='Normalized confusion matrix')
+plot_predicted_patches(predictions[:6], gt_patches)
+cm = compute_confusion_matrix(gt_patches, predictions[:6], classes=[0,1,2,3,4], class_names=class_names)
+mcc = compute_matthews_corrcoef(gt_pathces, predictions[:6])
+cm
+mcc
+# =============================================================================
+# confusion_matrix(gt_patches, predictions[80:86], classes = [0,1,2,3,4], class_names=class_names, normalize=True,
+#                       title='Normalized confusion matrix')
+# =============================================================================
 
 
 
@@ -301,9 +308,16 @@ predictions = model.predict_generator(patches)
 #plot_predicted_probabilities(predictions[:6], gt_patches, 5)
 plot_predicted_patches(predictions[:6], gt_patches)
 
-# Plot normalized confusion matrix
-plot_confusion_matrix(gt_patches, predictions, classes = [0,1,2,3,4], class_names=class_names, normalize=True,
-                      title='Normalized confusion matrix')
+# plots
+plot_predicted_patches(predictions, gt_patches)
+cm = compute_confusion_matrix(gt_patches, predictions, classes=[0,1,2,3,4], class_names=class_names)
+mcc = compute_matthews_corrcoef(gt_patches, predictions)
+cm
+mcc
+# =============================================================================
+# plot_confusion_matrix(gt_patches, predictions, classes = [0,1,2,3,4], class_names=class_names, normalize=True,
+#                       title='Normalized confusion matrix')
+# =============================================================================
 
 
 
