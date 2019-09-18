@@ -25,12 +25,13 @@ elif resolution == 20:
 if compute == "optimus":
     inputpath='/marrit2/Data/'
     dtmpath = 'marrit1/GrasslandProject/DTM/'
-    coordspath='/home/marrit/GrasslandProject/input/files/'
+    coordspath='/data3/marrit/GrasslandProject/input/files/'
     coordsfilename= 'patches.csv'
     patchespath = '/marrit1/GrasslandProject/Patches/'
-    tiles_cv_file = '/home/marrit/GrasslandProject/input/files/folders_cv.npy'
-    tiles_test_file = '/home/marrit/GrasslandProject/input/files/folders_test.npy'
-    model_savepath = '/home/marrit/GrasslandProject/output/models/'
+    tiles_cv_file = '/data3/marrit/GrasslandProject/input/files/folders_cv.npy'
+    tiles_test_file = '/data3/marrit/GrasslandProject/input/files/folders_test.npy'
+    model_savepath = '/data3/marrit/GrasslandProject/output/models/'
+    log_dir = '/data3/marrit/GrasslandProject/output/logs/'
 elif compute == "personal":
     inputpath='/media/cordolo/elements/Data/'
     dtmpath = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/DTM/'
@@ -135,11 +136,10 @@ batch_size = 128
 epochs=3
 checkpoint = ModelCheckpoint(output_model_path, monitor='val_loss', save_best_only=True, mode='min')
 stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, mode='min')
-#tensorboard = TensorBoard(log_dir = log_dir+'{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime()))
+tensorboard = TensorBoard(log_dir = log_dir+'scalars/'+'{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())))
 
 # load train and validation set
-index_train, index_val = train_val_split_subset(tiles_cv_file, coordspath + 
-                coordsfilename, folds, kth_fold, max_tiles)
+index_train, index_val = train_val_split_subset(tiles_cv_file, coordspath + coordsfilename , folds, kth_fold, max_tiles)
 n_patches_train = len(index_train)
 n_patches_val = len(index_val)
 
@@ -155,7 +155,7 @@ val_generator = DataGen(data_path = patchespath, n_patches = n_patches_val,
 
 # run
 result = model.fit_generator(generator=train_generator, validation_data=val_generator, 
-                epochs=epochs,callbacks=[checkpoint,stop])#,tensorboard]) 
+                             epochs=epochs,callbacks=[checkpoint,stop,tensorboard]) 
 
 # plot training history
 plot_history(result)
@@ -178,20 +178,20 @@ output_model_path = model_savepath + modelname + \
     '_res:' + str(resolution) +"_epoch:.{epoch:02d}"+"_valloss:.{val_loss:.4f}.hdf5"
 
 # init
-folds = 8 # for model test phase
+folds = 4 
 kth_fold = 0
 
 # training setup
 batch_size = 128
-epochs=5
+epochs=60
 checkpoint = ModelCheckpoint(output_model_path, monitor='val_loss', save_best_only=True, mode='min')
-stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, mode='min')
-#tensorboard = TensorBoard(log_dir = log_dir+'{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime()))
+stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=8, mode='min')
+tensorboard = TensorBoard(log_dir = log_dir+'scalars/'+'{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())))
 
 # load train and validation set
 index_train, index_val = train_val_split(tiles_cv_file, coordspath + coordsfilename, folds, kth_fold) 
-n_patches_train = len(index_train)
-n_patches_val = len(index_val)
+n_patches_train = 3072#len(index_train)
+n_patches_val = 3072#len(index_val)
 
 # init datagenerator
 train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, 
@@ -205,7 +205,7 @@ val_generator = DataGen(data_path = patchespath, n_patches = n_patches_val,
 
 # run
 result = model.fit_generator(generator=train_generator, validation_data=val_generator, 
-                epochs=epochs,callbacks=[checkpoint,stop])#,tensorboard]) 
+                epochs=epochs,callbacks=[checkpoint,stop,tensorboard]) 
 
 # plot training history
 plot_history(result)

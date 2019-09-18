@@ -47,7 +47,10 @@ class DataGen(keras.utils.Sequence):
     
     def __data_generation(self, list_idx_temp):
         'Generates data containing batch_size samples'
-                
+        
+        # test with smaller dataset
+        list_idx_temp = np.random.choice(self.indices, size= self.batch_size,replace=False)
+        
         # Initialization
         X = np.zeros((self.batch_size, self.max_size, self.max_size, 5), dtype=np.float16) 
         y = np.zeros((self.batch_size, self.max_size, self.max_size, 5), dtype=np.int8)
