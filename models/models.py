@@ -8,7 +8,7 @@ Created on Wed Sep  4 10:13:08 2019
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Input, Dropout, Conv2D,BatchNormalization,Activation,MaxPooling2D, Conv2DTranspose, concatenate
 from tensorflow.keras.regularizers import l2
-from tf.keras.applications.resnet import ResNet50
+from tensorflow.keras.applications.resnet import ResNet50
 from models.BilinearUpSampling import BilinearUpSampling2D
 from models.blocks import conv_block, identity_block, atrous_conv_block, atrous_identity_block
 
