@@ -39,10 +39,6 @@ class DataGen(keras.utils.Sequence):
 
         # Find list of IDs
         list_idx_temp = [k for k in indexes]
-        
-        # print indexes to check
-        for k in indexes:
-            print(k)
 
         # Generate data
         X, y = self.__data_generation(list_idx_temp)
@@ -51,9 +47,6 @@ class DataGen(keras.utils.Sequence):
     
     def __data_generation(self, list_idx_temp):
         'Generates data containing batch_size samples'
-        
-        # test with smaller dataset
-        #list_idx_temp = np.random.choice(self.indices, size= self.batch_size,replace=False)
         
         # Initialization
         X = np.zeros((self.batch_size, self.max_size, self.max_size, 5), dtype=np.float16) 
@@ -82,7 +75,6 @@ class DataGen(keras.utils.Sequence):
         'Shuffle indexes after each epoch'
         if self.shuffle == True:
             np.random.shuffle(self.indices)
-            print("shuffle")
     
     def data_augmentation(self, X, y):
         'Data augmentation based on flips and rotations'
