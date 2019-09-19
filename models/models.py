@@ -8,6 +8,7 @@ Created on Wed Sep  4 10:13:08 2019
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Input, Dropout, Conv2D,BatchNormalization,Activation,MaxPooling2D, Conv2DTranspose, concatenate
 from tensorflow.keras.regularizers import l2
+from tf.keras.applications.resnet import ResNet50
 from models.BilinearUpSampling import BilinearUpSampling2D
 from models.blocks import conv_block, identity_block, atrous_conv_block, atrous_identity_block
 
@@ -146,8 +147,53 @@ def AtrousFCN_Resnet53_16s(input_shape, n_classes, weight_decay=0., batch_moment
 #    model.load_weights(weights_path, by_name=True)
     return model
 
+def pretrained_Resnet50(input_shape, n_classes, weight_decay=0., batch_momentum=0.9,dropout_rate=0.5):
+    """ Create a pretrained ResNet 50 and add upsampling layers for dense prediction
+    
+    arguments
+    ---------
+        input_shape: tuple
+        
+        n_classes: int
+    
+        weight_decay: float between 0 and 1
+            l2 weight regularization penalty
+        batch_momentum: float between 0 and 1
+            momentum in the computation of the exponential average of the 
+            mean and standard deviation of the data, for feature-wise normalization.
+        dropout_rate: float between 0 and 1. default=0.5
+            !! NOT USED IN THIS FUNCTION!! fraction of the input units to drop 
+        
+    
+    returns
+    -------
+        model: Keras Model
+    """  
+    
+    # Create the base model from the pre-trained model ResNet50
+    base_model = ResNet50(input_shape=(input_shape[0], input_shape[1],3),include_top=False, weights='imagenet')
+    
+    inputs = Input(input_shape)
+    
+    # map inputs to 3 layers
+    c1 = Conv2D(3, (1,1))(inputs)
+    
+    # resnet
+    resnet = base_model(c1)
+    
+    # dense classification
+    head = Conv2D(n_classes, (1, 1), kernel_initializer='he_normal', activation='softmax', padding='same', strides=(1, 1), kernel_regularizer=l2(weight_decay))(resnet)
+    
+    #upsampling
+    outputs = BilinearUpSampling2D(target_size=tuple(input_shape[0:2]))(head)
+
+    model = Model(inputs, outputs)
+
+    return model
+
 all_models = {
     "UNet": UNet,
-    "ResNet": AtrousFCN_Resnet53_16s
+    "ResNet": AtrousFCN_Resnet53_16s,
+    "Pretrained_ResNet": pretrained_Resnet50
 }
         
