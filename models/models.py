@@ -178,8 +178,12 @@ def pretrained_Resnet50(input_shape, n_classes, weight_decay=0., batch_momentum=
     
     # Create the base model from the pre-trained model ResNet50
     base_model = ResNet50(input_shape=(input_shape[0], input_shape[1],3),include_top=False, weights='imagenet')
-    #for layer in base_model.layers[:-10]: 
-    #    layer.trainable = False
+# =============================================================================
+#     for layer in base_model.layers[:-10]: 
+#         layer.trainable = False
+# =============================================================================
+    for layer in base_model.layers:
+        layer.trainable = False
     
     inputs = Input(input_shape)
     
