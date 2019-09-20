@@ -5,12 +5,6 @@ Created on Wed Sep  4 10:13:08 2019
 
 @author: cordolo
 """
-# =============================================================================
-# from keras import Model
-# from keras.layers import Input, Dropout, Conv2D,BatchNormalization,Activation,MaxPooling2D, Conv2DTranspose, concatenate
-# from keras.regularizers import l2
-# from keras.applications.resnet50 import ResNet50
-# =============================================================================
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Input, Dropout, Conv2D,BatchNormalization,Activation,MaxPooling2D, Conv2DTranspose, concatenate
 from tensorflow.keras.regularizers import l2
@@ -203,53 +197,9 @@ def pretrained_Resnet50(input_shape, n_classes, weight_decay=0., batch_momentum=
 
     return model
 
-def pretrained_UNet(input_shape, n_classes, weight_decay=0., batch_momentum=0.9,dropout_rate=0.5):
-    """ Create a pretrained UNet
-    
-    arguments
-    ---------
-        input_shape: tuple
-        
-        n_classes: int
-    
-        weight_decay: float between 0 and 1
-            l2 weight regularization penalty
-        batch_momentum: float between 0 and 1
-            momentum in the computation of the exponential average of the 
-            mean and standard deviation of the data, for feature-wise normalization.
-        dropout_rate: float between 0 and 1. default=0.5
-            !! NOT USED IN THIS FUNCTION!! fraction of the input units to drop 
-        
-    
-    returns
-    -------
-        model: Keras Model
-    """  
-    from segmentation_models import Unet 
-      
-    base_model = Unet(backbone_name='resnet34', encoder_weights='imagenet', 
-                      classes = n_classes, decoder_block_type='transpose', 
-                      encoder_freeze = True, activation='softmax')
-    
-    # map inputs to 3 layers
-    inputs = Input(input_shape)
-    
-    # map inputs to 3 layers
-    c1 = Conv2D(3, (1,1))(inputs)
-
-    # unet
-    outputs = base_model(c1)
-    
-    # model
-    model = Model(inputs, outputs)
-    
-    return model 
-
-
 all_models = {
     "UNet": UNet,
     "ResNet": AtrousFCN_Resnet53_16s,
-    "Pretrained_ResNet": pretrained_Resnet50,
-    "Pretrained_UNet": pretrained_UNet
+    "Pretrained_ResNet": pretrained_Resnet50
 }
         
