@@ -5,14 +5,16 @@ Created on Wed Sep  4 10:13:08 2019
 
 @author: cordolo
 """
-from keras import Model
-from keras.layers import Input, Dropout, Conv2D,BatchNormalization,Activation,MaxPooling2D, Conv2DTranspose, concatenate
-from keras.regularizers import l2
-from keras.applications.resnet50 import ResNet50
-#from tensorflow.keras import Model
-#from tensorflow.keras.layers import Input, Dropout, Conv2D,BatchNormalization,Activation,MaxPooling2D, Conv2DTranspose, concatenate
-#from tensorflow.keras.regularizers import l2
-#from tensorflow.keras.applications.resnet50 import ResNet50
+# =============================================================================
+# from keras import Model
+# from keras.layers import Input, Dropout, Conv2D,BatchNormalization,Activation,MaxPooling2D, Conv2DTranspose, concatenate
+# from keras.regularizers import l2
+# from keras.applications.resnet50 import ResNet50
+# =============================================================================
+from tensorflow.keras import Model
+from tensorflow.keras.layers import Input, Dropout, Conv2D,BatchNormalization,Activation,MaxPooling2D, Conv2DTranspose, concatenate
+from tensorflow.keras.regularizers import l2
+from tensorflow.keras.applications.resnet50 import ResNet50
 from models.BilinearUpSampling import BilinearUpSampling2D
 from models.blocks import conv_block, identity_block, atrous_conv_block, atrous_identity_block
 
@@ -176,8 +178,8 @@ def pretrained_Resnet50(input_shape, n_classes, weight_decay=0., batch_momentum=
     
     # Create the base model from the pre-trained model ResNet50
     base_model = ResNet50(input_shape=(input_shape[0], input_shape[1],3),include_top=False, weights='imagenet')
-    for layer in base_model.layers[:-10]: 
-        layer.trainable = False
+    #for layer in base_model.layers[:-10]: 
+    #    layer.trainable = False
     
     inputs = Input(input_shape)
     
