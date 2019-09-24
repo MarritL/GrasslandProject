@@ -295,6 +295,7 @@ def pretrained_Resnet50(input_shape, n_classes, weight_decay=0., batch_momentum=
     
     # map inputs to 3 layers
     c1 = Conv2D(3, (1,1))(inputs)
+    c1 = BatchNormalization(axis=3)(c1)
     
     # resnet
     resnet = base_model(c1)
