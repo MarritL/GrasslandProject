@@ -12,7 +12,7 @@ import tensorflow.keras as keras
 class DataGen(keras.utils.Sequence):
     'Generates data for Keras'   
     
-    def __init__(self, data_path, n_patches, shuffle, augment, indices, batch_size=128, patch_size=480, n_classes=5, channels=[0,1,2,3,4], max_size=480):
+    def __init__(self, data_path, n_patches, shuffle, augment, indices, batch_size=128, patch_size=480, n_classes=5, channels=[0,1,2,3,4], max_size=480, pretrained_resnet50=False):
         'Initialization'
         self.data_path = data_path
         self.batch_size = batch_size        
@@ -25,6 +25,7 @@ class DataGen(keras.utils.Sequence):
         self.augment = augment
         self.indices = indices
         self.max_size = max_size
+        self.pretrained_resnet50 = pretrained_resnet50
         self.on_epoch_end()
     
     def __len__(self):
@@ -42,6 +43,8 @@ class DataGen(keras.utils.Sequence):
 
         # Generate data
         X, y = self.__data_generation(list_idx_temp)
+        if self.pretrained_resnet50:
+            X = self.__preprocess_imagenet(X)
         
         return X,y
     
@@ -93,3 +96,22 @@ class DataGen(keras.utils.Sequence):
         y = np.rot90(y,k=rot90)  
         
         return X,y
+    
+    def __preprocess_imagenet(self, X):
+        'Preprocesses in same way as imagenet on pretrained ResNet50'
+        
+        # imagenet means and sds, for fourth and fifth channel, take avg of first 3
+        means = [0.485, 0.456, 0.406, 0.449, 0.499]
+        stds = [0.229, 0.224, 0.225, 0.226, 0.226]
+        
+        # normalize
+        X *= 2  # because images are already normalized to values between 0-1
+        X -= 1
+        
+        # Zero-center by mean pixel
+        for i in range(self.n_channels):
+            X[...,i] -= means[i]
+            X[...,i] /= stds[i]
+            
+        return X              
+  
