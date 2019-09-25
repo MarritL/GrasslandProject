@@ -784,13 +784,16 @@ def count_classes(patchespath, coordsfile, class_names, res):
         # count classes
         for j in range(len(class_names)):
             coords_df.at[i,col_names[j]]= np.sum(patch[:,:,j])
+        
+        if i % 500 == 0: 
+                print('\r {}/{}'.format(i, len(coords_df)),end='') 
             
     # save csv
     savefile = coordsfile.replace('patches.csv', 'patches_'+str(res)+'.csv')
     coords_df.to_csv(savefile)        
 
     # calculate percentages
-    tot_per_class = coords_df[['n_class0', 'n_class1', 'n_class2', 'n_class3', 'n_class4']].sum(axis=0)
+    tot_per_class = coords_df[[v for v in col_names.values()]].sum(axis=0)
     tot = tot_per_class.sum()   
     percentage = tot_per_class / tot
 
