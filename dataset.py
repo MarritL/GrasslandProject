@@ -749,7 +749,7 @@ def get_patches(patchespath, indices, patch_size_padded, channels, resolution):
         
     return X, y
 
-def count_classes(patchespath, coordsfile, class_names):
+def count_classes(patchespath, coordsfile, class_names, res):
     """ Count the number of pixels of each class and return percentage per class
     
     arguments
@@ -770,7 +770,7 @@ def count_classes(patchespath, coordsfile, class_names):
     coords_df = pd.read_csv(coordsfile, sep=',',header=None, names=['tiles', 'row', 'col'])
     
     # add empty colums for class counts
-    col_names = {i: class_names[i] for i in range(len(class_names))}
+    col_names = {i: class_names[i]+'_' + str(res) for i in range(len(class_names))}
     
     for i in range(len(class_names)):
         coords_df[col_names[i]] = np.nan
@@ -784,6 +784,10 @@ def count_classes(patchespath, coordsfile, class_names):
         # count classes
         for j in range(len(class_names)):
             coords_df.at[i,col_names[j]]= np.sum(patch[:,:,j])
+            
+    # save csv
+    savefile = coordsfile.replace('patches.csv', 'patches_'+str(res)+'.csv')
+    coords_df.to_csv(savefile)        
 
     # calculate percentages
     tot_per_class = coords_df[['n_class0', 'n_class1', 'n_class2', 'n_class3', 'n_class4']].sum(axis=0)
