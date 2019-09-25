@@ -350,13 +350,88 @@ def pretrained_VGG16(input_shape, n_classes, weight_decay=0., batch_momentum=0.9
     c1 = BatchNormalization(axis=3)(c1)
     
     # resnet
-    resnet = base_model(c1)
+    vgg = base_model(c1)
     
     # dense classification
-    head = Conv2D(n_classes, (1, 1), kernel_initializer='he_normal', activation='softmax', padding='same', strides=(1, 1), kernel_regularizer=l2(weight_decay))(resnet)
+    head = Conv2D(n_classes, (1, 1), kernel_initializer='he_normal', activation='softmax', padding='same', strides=(1, 1), kernel_regularizer=l2(weight_decay))(vgg)
     
     #upsampling
     outputs = BilinearUpSampling2D(target_size=tuple(input_shape[0:2]))(head)
+
+    model = Model(inputs, outputs)
+
+    return model
+
+def pretrained_VGG16_transpose(input_shape, n_classes, weight_decay=0., batch_momentum=0.9,dropout_rate=0.5):
+    """ Create a pretrained VGG16 and add upsampling layers for dense prediction
+    
+    arguments
+    ---------
+        input_shape: tuple
+        
+        n_classes: int
+    
+        weight_decay: float between 0 and 1
+            l2 weight regularization penalty
+        batch_momentum: float between 0 and 1
+            momentum in the computation of the exponential average of the 
+            mean and standard deviation of the data, for feature-wise normalization.
+        dropout_rate: float between 0 and 1. default=0.5
+            !! NOT USED IN THIS FUNCTION!! fraction of the input units to drop 
+        
+    
+    returns
+    -------
+        model: Keras Model
+    """  
+    
+    # Create the base model from the pre-trained model ResNet50
+    base_model = VGG16(input_shape=(input_shape[0], input_shape[1],3),include_top=False, weights='imagenet')
+    
+# =============================================================================
+#     for layer in base_model.layers[:-10]: 
+#         layer.trainable = False
+# =============================================================================
+    for layer in base_model.layers:
+        layer.trainable = False
+    
+    inputs = Input(input_shape)
+    
+    # map inputs to 3 layers
+    c1 = Conv2D(3, (1,1))(inputs)
+    c1 = BatchNormalization(axis=3)(c1)
+    
+    # resnet
+    vgg = base_model(c1)
+      
+    # upsampling
+    u6 = Conv2DTranspose(256, (2, 2), strides=(2, 2), padding='same') (vgg)
+    c6 = Conv2D(256, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (u6)
+    c6 = Dropout(dropout_rate) (c6)
+    c6 = Conv2D(256, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c6)
+    
+    u6 = Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same') (c6)
+    c6 = Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (u6)
+    c6 = Dropout(dropout_rate) (c6)
+    c6 = Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c6)
+    
+    u7 = Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same') (c6)
+    c7 = Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (u7)
+    c7 = Dropout(dropout_rate) (c7)
+    c7 = Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c7)
+     
+    u8 = Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same') (c7)
+    c8 = Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (u8)
+    c8 = Dropout(dropout_rate) (c8)
+    c8 = Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c8)
+     
+    u9 = Conv2DTranspose(16, (2, 2), strides=(2, 2), padding='same') (c8)
+    c9 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (u9)
+    c9 = Dropout(dropout_rate) (c9)
+    c9 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c9)
+    
+    # dense classification
+    outputs = Conv2D(n_classes, (1, 1), activation='softmax') (c9)
 
     model = Model(inputs, outputs)
 
@@ -366,6 +441,7 @@ all_models = {
     "UNet": UNet,
     "ResNet": AtrousFCN_Resnet53_16s,
     "Pretrained_ResNet": pretrained_Resnet50,
-    "Pretrained_VGG16": pretrained_VGG16
+    "Pretrained_VGG16": pretrained_VGG16,
+    "Pretrained_VGG16_T":pretrained_VGG16_transpose
 }
         
