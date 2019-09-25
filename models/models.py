@@ -365,7 +365,7 @@ def pretrained_VGG16(input_shape, n_classes, weight_decay=0., batch_momentum=0.9
 all_models = {
     "UNet": UNet,
     "ResNet": AtrousFCN_Resnet53_16s,
-    "Pretrained_ResNet": pretrained_Resnet50
+    "Pretrained_ResNet": pretrained_Resnet50,
     "Pretrained_VGG16": pretrained_VGG16
 }
         
