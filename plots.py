@@ -451,7 +451,8 @@ def plot_patch_options(gt, starting_points, patch_size_padded):
     for index, row in starting_points.iterrows(): 
         r = row['row']*patch_size_padded
         c = row['col']*patch_size_padded
-        patch = patches.Rectangle((c,r),patch_size_padded,patch_size_padded,linewidth=1,edgecolor='r',facecolor='none')
+        fill = row['patch']
+        patch = patches.Rectangle((c,r),patch_size_padded,patch_size_padded,linewidth=1,edgecolor='r',facecolor=fill)
     
         # Add the patch to the Axes
         ax.add_patch(patch)
