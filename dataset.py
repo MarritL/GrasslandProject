@@ -630,6 +630,38 @@ def train_val_split(tiles_cv_file, coordsfile, folds, k):
     
     return(index_train, index_val)
     
+def train_val_split_random(coordsfile):    
+    """ select indices of train and validation patches in coordfile
+        naive method, does not take tiles into account
+    
+    arguments
+    ---------
+        coordsfile: string
+            path to file where the coordinates are saved
+            
+    return
+    ------
+        index_train: numpy ndarray
+            indices of train patches in coordsfile
+        index_val: numpy ndarray
+            indices of validation patches in coordsfile
+        index_test: numpy ndarray
+            indices of test patches in coordsfile
+     
+    """    
+    coords_df = pd.read_csv(coordsfile, sep=',',header=None, names=['tiles', 'row', 'col'])
+    n_patches = len(coords_df)
+    patches = np.arange(n_patches)  
+    
+    
+    index_test = np.random.choice(patches, int(0.2*n_patches), replace=False)
+    patches = patches[np.isin(patches, index_test) == False]
+    
+    index_val = np.random.choice(patches, int(0.2*n_patches), replace=False)
+    index_train = patches[np.isin(patches, index_val) == False]
+    
+    return(index_train, index_val, index_test)
+    
 def train_val_split_subset(tiles_cv_file, coordsfile, folds, k, max_tiles):    
     """ select indices of train and validation patches in coordfile
     
