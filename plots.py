@@ -413,7 +413,49 @@ def plot_patches_on_tile(coordsfile, tiles_path, tile, patch_size_padded):
         ax.add_patch(patch)
     
     plt.show()
+
+def plot_patch_options(gt, starting_points, patch_size_padded):
+    """ plot the options for patches on the tile
     
+    arguments
+    ---------
+        gt: np.array
+            2D numpy array with ground truth
+        starting_points: pandas dataframe
+            dataframe with the starting points in columns 'row' and 'col' 
+            will by multiplied by patch_size_padded
+        patch_size_padded: int
+            patch size with padding for prediction
+            
+    returns
+    -------
+        plot of the ground truth tile with squares patch options.
     
+    """
+    colors = ['black', 'linen', 'lightgreen', 'green', 'darkgreen', 'yellow']
+    cmap = ListedColormap(colors)
+    
+    gt[gt==638] = 1
+    gt[gt==659] = 2
+    gt[gt==654] = 3  
+    gt[gt==650] = 4
+    gt[gt==770] = 5
+    
+    # Create figure and axes
+    fig,ax = plt.subplots(figsize=(10,10))
+    
+    # plot image
+    ax.imshow(gt, cmap=cmap, vmin=0, vmax=5)
+    
+    # Create a square for patch
+    for index, row in starting_points.iterrows(): 
+        r = row['row']*patch_size_padded
+        c = row['col']*patch_size_padded
+        patch = patches.Rectangle((c,r),patch_size_padded,patch_size_padded,linewidth=1,edgecolor='r',facecolor='none')
+    
+        # Add the patch to the Axes
+        ax.add_patch(patch)
+    
+    plt.show()   
     
     
