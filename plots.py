@@ -8,11 +8,14 @@ Created on Mon Sep  2 09:05:50 2019
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from utils import list_files
 from matplotlib.colors import ListedColormap
 import earthpy.plot as ep
 import umap
 from sklearn.decomposition import PCA
+from osgeo import gdal
+import matplotlib.patches as patches
 
 # colormap
 colors = ['linen', 'lightgreen', 'green', 'darkgreen', 'yellow']
@@ -24,7 +27,7 @@ def plot_random_patches(patches_path, n_patches, classes, class_names):
     arguments
     ---------
         patches_path: string
-            path to folder containing the patches
+            path to folder containing the patches 
         n_patches: int
             number of random patches to plot
         classes: list
@@ -351,3 +354,66 @@ def pca_plot(pixel_values, labels):
         plt.scatter(principalComponents[indices,0], principalComponents[indices, 1], c=colors[cl], label=[cl])
     plt.legend()
     plt.show()
+    
+def plot_patches_on_tile(coordsfile, tiles_path, tile, patch_size_padded):
+    """
+    
+    arguments
+    ---------
+        coordsfile: string
+            path to file where the coordinates are saved
+        tiles_path: string
+            path to folder containing the tiles
+        tile: string
+            name of tile to plot
+        patch_size_padded: int
+            
+    
+    returns
+    -------
+        plot of tile with the patches outlined
+    """
+    
+    colors = ['black', 'linen', 'lightgreen', 'green', 'darkgreen', 'yellow']
+    cmap = ListedColormap(colors)
+    coords_df = pd.read_csv(coordsfile, sep=',',header=None, names=['tiles', 'row', 'col'])
+    is_tile = coords_df['tiles'] == tile
+    patches_tile = coords_df[is_tile]
+    
+    # get tile
+    path_shp = tiles_path + tile + '/tare.tif'
+    ds = gdal.Open(path_shp,gdal.GA_ReadOnly)
+    gt = ds.GetRasterBand(1).ReadAsArray()
+    gt = np.uint16(gt)
+    ds = None
+    
+    # set classes for plotting
+    gt[gt==638] = 1
+    gt[gt==659] = 2
+    gt[gt==654] = 3
+    gt[gt==650] = 4
+    gt[gt==770] = 5
+    
+    # prepare RGB plot
+    #plt_im = im_RGB[:, :, [0,1,2]].astype(np.float64)
+    
+    # Create figure and axes
+    fig,ax = plt.subplots(figsize=(15,15))
+    
+    # plot image
+    ax.imshow(gt, cmap=cmap, vmin=0, vmax=5)
+    
+    # Create a square for patch
+    for index, row in patches_tile.iterrows(): 
+        r = int(row['row']*5)
+        c = int(row['col']*5)
+        patch = patches.Rectangle((c,r),patch_size_padded,patch_size_padded,linewidth=1,edgecolor='r',facecolor='none')
+    
+        # Add the patch to the Axes
+        ax.add_patch(patch)
+    
+    plt.show()
+    
+    
+    
+    
