@@ -398,7 +398,7 @@ def plot_patches_on_tile(coordsfile, tiles_path, tile, patch_size_padded):
     #plt_im = im_RGB[:, :, [0,1,2]].astype(np.float64)
     
     # Create figure and axes
-    fig,ax = plt.subplots(figsize=(15,15))
+    fig,ax = plt.subplots(figsize=(10,10))
     
     # plot image
     ax.imshow(gt, cmap=cmap, vmin=0, vmax=5)
