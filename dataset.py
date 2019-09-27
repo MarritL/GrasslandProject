@@ -324,13 +324,15 @@ def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classe
     imagespath = patchespath + 'images/'
     labelspath = patchespath + 'labels/'
     
+    if not os.path.isdir(patchespath):
+        os.makedirs(patchespath) 
     if not os.path.isdir(imagespath):
         os.makedirs(imagespath)    
     if not os.path.isdir(labelspath):
         os.makedirs(labelspath)
         
     dirs = list_dir(inputpath)
-    coords = pd.read_csv(coordsfile, sep=',',header=None)
+    coords = pd.read_csv(coordsfile, sep=',')
     patch_size_padded = int(patch_size * 3)
     
     if resolution == 20:
@@ -477,7 +479,7 @@ def read_patch_1m(inputRGB, inputNIR, inputDTMfile, inputGT, coords_df, patch_si
 
     n_features = 5 #R,G,B, NIR, DTM
     
-    folder, r, c = coords_df.iloc[idx]
+    r, c, folder = coords_df.iloc[idx]
     r = int(r//5)
     c = int(c//5)
 
@@ -550,7 +552,7 @@ def read_patch(inputpath, dtmpath, coords_df, patch_size_padded, idx, classes):
     
     n_features = 5 #R,G,B, NIR, DTM
     
-    folder, r, c = coords_df.iloc[idx]
+    r, c, folder = coords_df.iloc[idx]
     r = int(r)
     c = int(c)
 
