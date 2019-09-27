@@ -932,9 +932,3 @@ def find_patches_options(gt, patch_size_padded, tile):
     return combinations_usable
     
     #plot_patch_options(gt, combinations_usable, patch_size_padded)
-
-not_in = []
-
-for dirs in dirs_array: 
-    if dirs not in new_dataset_dirs: 
-        not_in.append(dirs)
