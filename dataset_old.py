@@ -212,6 +212,151 @@ def sample_patches_of_class(population, population_all, patches_per_tile, cl, gt
                     n_samples==0
                     break
 
+def read_patch_1m(inputRGB, inputNIR, inputDTMfile, inputGT, coords_df, patch_size_padded, idx, classes):
+    """ load patch based on left-top coordinate
+    
+    Parameters
+    ----------
+        inputpath: string
+            path to the folder containing dataset
+        patchespath: string
+            path to folder containing the resampled dtm 
+        coords_df: pandas.dataframe
+            dataframe with coordinates in the format [tile, r (=left), c (=top)]
+        patch_size_padded: int
+            size of patch (including padding) to be extracted in number of pixels 
+            (patch will be squared)
+        idx: int
+            index of row in coords file to be read
+        classes: list
+            list with classes to be predicted
+          
+    Calls
+    -----
+        to_categorical_classes
+
+    Returns
+    ------
+        patch: numpy.ndarray 
+            patch of size (patch_size, patch_size, 5) with normalized RGB, NIR, DTM 
+        gt: numpy.ndarray 
+            patch of size (patch_size, patch_size, n_classes) with one-hot encoded ground truth
+    """
+
+    n_features = 5 #R,G,B, NIR, DTM
+    
+    r, c, folder = coords_df.iloc[idx]
+    r = int(r)
+    c = int(c)
+
+    patch = np.zeros([patch_size_padded,patch_size_padded,n_features],dtype=np.float16)
+    
+    # RGB
+    ds = inputRGB  
+    # needed for resampling of dtm 
+    for x in range(1, ds.RasterCount + 1):
+        band = ds.GetRasterBand(x)
+        patch[:,:,x-1] = band.ReadAsArray(c,r,int(patch_size_padded), int(patch_size_padded))
+
+    # NIR
+    ds = inputNIR
+    band = ds.GetRasterBand(1)
+    patch[:,:,3] = band.ReadAsArray(c, r, patch_size_padded, patch_size_padded)
+
+    # DTM
+    ds = gdal.Open(inputDTMfile, gdal.GA_ReadOnly)
+    band = ds.GetRasterBand(1)
+    patch[:,:,4] = band.ReadAsArray(c, r, patch_size_padded, patch_size_padded)
+
+    #normalization
+    patch = np.divide(patch,255)
+    
+    # load ground truth
+    ds = inputGT
+    band = ds.GetRasterBand(1)
+    gt = band.ReadAsArray(c, r, patch_size_padded, patch_size_padded)
+    
+    # take care of classes
+    gt[np.where(gt == 656)] = 650
+    gt[np.where(gt == 780)] = 770
+    gt[np.isin(gt, classes)==False] = 0
+    
+    gt = to_categorical_classes(gt, classes)
+    
+    return((patch,gt))
+            
+def read_patch(inputpath, dtmpath, coords_df, patch_size_padded, idx, classes):
+    """ load patch based on left-top coordinate
+    
+    Parameters
+    ----------
+        inputpath: string
+            path to the folder containing dataset
+        dtmpath: string
+            path to folder containing the resampled dtm 
+        coords_df: pandas.dataframe
+            dataframe with coordinates in the format [tile, r (=left), c (=top)]
+        patch_size_padded: int
+            size of patch (including padding) to be extracted in number of pixels 
+            (patch will be squared)
+        idx: int
+            index of row in coords file to be read
+        classes: list
+            list with classes to be predicted
+          
+    Calls
+    -----
+        to_categorical_classes
+
+    Returns
+    ------
+        patch: numpy.ndarray 
+            patch of size (patch_size, patch_size, 5) with normalized RGB, NIR, DTM 
+        gt: numpy.ndarray 
+            patch of size (patch_size, patch_size, n_classes) with one-hot encoded ground truth
+    """
+    
+    n_features = 5 #R,G,B, NIR, DTM
+    
+    r, c, folder = coords_df.iloc[idx]
+    r = int(r*5)
+    c = int(c*5)
+
+    patch = np.zeros([patch_size_padded,patch_size_padded,n_features],dtype=np.float16)
+    
+    # RGB
+    ds = gdal.Open(inputpath + folder + '/' + folder + '_RGB.tif',gdal.GA_ReadOnly)    
+    # needed for resampling of dtm 
+    for x in range(1, ds.RasterCount + 1):
+        band = ds.GetRasterBand(x)
+        patch[:,:,x-1] = band.ReadAsArray(c,r,patch_size_padded, patch_size_padded)
+
+    # NIR
+    ds = gdal.Open(inputpath + folder + '/' + folder + '_NIR.tif' ,gdal.GA_ReadOnly)
+    band = ds.GetRasterBand(1)
+    patch[:,:,3] = band.ReadAsArray(c, r, patch_size_padded, patch_size_padded)
+
+    # DTM
+    ds = gdal.Open(dtmpath + folder + '/dtm135_20cm.tif' ,gdal.GA_ReadOnly)
+    band = ds.GetRasterBand(1)
+    patch[:,:,4] = band.ReadAsArray(c, r, patch_size_padded, patch_size_padded)
+
+    #normalization
+    patch = np.divide(patch,255)
+    
+    # load ground truth
+    ds = gdal.Open(inputpath + folder + '/tare.tif' ,gdal.GA_ReadOnly)
+    band = ds.GetRasterBand(1)
+    gt = band.ReadAsArray(c, r, patch_size_padded, patch_size_padded)
+    
+    # take care of classes
+    gt[np.where(gt == 656)] = 650
+    gt[np.where(gt == 780)] = 770
+    gt[np.isin(gt, classes)==False] = 0
+    
+    gt = to_categorical_classes(gt, classes)
+    
+    return((patch,gt))
             
 # =============================================================================
 # def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classes):

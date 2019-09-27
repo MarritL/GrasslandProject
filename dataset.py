@@ -17,8 +17,8 @@ from plots import plot_patch_options
 def tile_to_csv_grid(inputpath, coordspath, coordsfilename, patch_size_padded):
     """ save location of patches in csv-file.
     
-    Locations of top-left corner-pixel of patches are saved. These pixels
-    are chosen at random, however the percentual class division is respected.
+    Locations of top-left corner-pixel of patches are saved in csv. These corner
+    pixels are based on a grid overlaying the original tiles.
     
     parameters
     ----------
@@ -28,25 +28,20 @@ def tile_to_csv_grid(inputpath, coordspath, coordsfilename, patch_size_padded):
             path to outputfolder to save file with coordinates
         coordsfilename: string
             output filename, extention should be '.csv'
-        patches_per_tile: int
-            number of patches to extract per tile. Final number can be lower if the 
-            classes cover very few pixels
-        patch_size: int
-            size of patch to extract. Final extracted patches will include padding 
-            to be able to predict full image.
-        classes: list
-            list with classes to be predicted
+        patch_size_padded: int
+            size of patch to extract including padding to be able to predict 
+            full image.
     
     calls
     -----
-        sample_patches_of_class()
+        find_patches_options()
     
     output
     -------
         outputfile: csv
-            each row contains tile-name and row + column of top-left pixel of patch: 
-            tile,row,column
-            saved at outputpath.
+            each row contains row + column of top-left pixel of patch and tilename: 
+            row,column,tile
+            saved at coordspath with name coordsfilename
     """
     
     # init
@@ -81,8 +76,7 @@ def tile_to_csv_grid(inputpath, coordspath, coordsfilename, patch_size_padded):
            
 def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classes, resolution):
     """ extract the patches from the original images, normalize and save.
-    
-    Ground truth is converted to one-hot labels. 
+        Ground truth is converted to one-hot labels. 
     
     Parameters
     ----------
@@ -102,10 +96,10 @@ def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classe
         resolution: int
             either 20 for 20cm or 1 for 1m
             
-    
     Calls
     -----
         read_patch() 
+        read_patch_1m()
         to_categorical_classes()
     
     Output
@@ -182,16 +176,20 @@ def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classe
     
 
 def read_patch_1m(inputRGB, inputNIR, inputDTMfile, inputGT, coords_df, patch_size_padded, idx, classes):
-    """ load patch based on left-top coordinate
+    """ load patch based on left-top coordinate for 1mx1m resolution 
     
     Parameters
     ----------
-        inputpath: string
-            path to the folder containing dataset
-        patchespath: string
-            path to folder containing the resampled dtm 
+        inputRGB: gdal raster
+            RGB tile in gdal format
+        inputNIR: gdal raster
+            NIR tile in gdal format
+        inputDTMfile: string
+            path to DTM tiff file
+        inputGT: gdal raster
+            Ground Truth tile in gdal format
         coords_df: pandas.dataframe
-            dataframe with coordinates in the format [tile, r (=left), c (=top)]
+            dataframe with coordinates in the format [r (=left), c (=top), tile]
         patch_size_padded: int
             size of patch (including padding) to be extracted in number of pixels 
             (patch will be squared)
@@ -255,7 +253,7 @@ def read_patch_1m(inputRGB, inputNIR, inputDTMfile, inputGT, coords_df, patch_si
     return((patch,gt))
             
 def read_patch(inputpath, dtmpath, coords_df, patch_size_padded, idx, classes):
-    """ load patch based on left-top coordinate
+    """ load patch based on left-top coordinate for 20cmx20cm resolution 
     
     Parameters
     ----------
@@ -264,7 +262,7 @@ def read_patch(inputpath, dtmpath, coords_df, patch_size_padded, idx, classes):
         dtmpath: string
             path to folder containing the resampled dtm 
         coords_df: pandas.dataframe
-            dataframe with coordinates in the format [tile, r (=left), c (=top)]
+            dataframe with coordinates in the format [r (=left), c (=top), tile]
         patch_size_padded: int
             size of patch (including padding) to be extracted in number of pixels 
             (patch will be squared)
@@ -363,7 +361,7 @@ def to_categorical_classes(y, classes, dtype=np.int8):
   return categorical
 
 def train_test_split(coordsfile, tiles_cv_file, tiles_test_file, n_test_tiles):
-    """
+    """ split dataset in a train and test part based on the original tiles
     
     arguments
     ---------
@@ -373,6 +371,14 @@ def train_test_split(coordsfile, tiles_cv_file, tiles_test_file, n_test_tiles):
             path to file where the tilenames for cross-validation are saved
         tiles_test_file: string
             path to file where the tilenames for testing are saved
+        n_test_tiles: int
+            number of test tiles to extract from the dataset
+    
+    saves
+    -------
+        2 csv files:
+            1 for training and validation (tiles_cv_file)
+            1 for testing (tiles_test_file)
     
     """
    
@@ -393,7 +399,7 @@ def train_test_split(coordsfile, tiles_cv_file, tiles_test_file, n_test_tiles):
     np.save(tiles_cv_file, tiles_shuffled)
 
 def train_val_split(tiles_cv_file, coordsfile, folds, k):    
-    """ select indices of train and validation patches in coordfile
+    """ select indices of train and validation patches in coordfile based on fold
     
     arguments
     ---------
@@ -434,8 +440,9 @@ def train_val_split(tiles_cv_file, coordsfile, folds, k):
     return(index_train, index_val)
     
 def train_val_split_random(coordsfile):    
-    """ select indices of train and validation patches in coordfile
-        naive method, does not take tiles into account
+    """ select indices of train, validation and test patches in coordsfile.
+        Naive method, does not take tiles into account original tiles, no 
+        splits for CV.
     
     arguments
     ---------
@@ -478,6 +485,8 @@ def train_val_split_subset(tiles_cv_file, coordsfile, folds, k, max_tiles):
             number of folds
         k: int
             fold to return, first fold is 0.
+        max_tiles: int
+            number of tiles to use for subset
             
     return
     ------
