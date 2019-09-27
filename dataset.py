@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 from osgeo import gdal
 from utils import list_dir
+from plots import plot_patch_options
 
 def tile_to_patch(inputpath, coordspath, coordsfilename, dtmpath, patchespath,
                   patch_size, patches_per_tile, classes, resolution):
@@ -220,7 +221,72 @@ def tile_to_csv(inputpath, coordspath, coordsfilename, patches_per_tile, patch_s
 #         if idx % 500 == 0: 
 #             print('\r {}/{}'.format(idx, len(coords)),end='')
 # =============================================================================
+
+def tile_to_csv_grid(inputpath, coordspath, coordsfilename, patch_size_padded):
+    """ save location of patches in csv-file.
+    
+    Locations of top-left corner-pixel of patches are saved. These pixels
+    are chosen at random, however the percentual class division is respected.
+    
+    parameters
+    ----------
+        inputpath: string
+            path to folders with tiles. Each tile should be in separate folder  
+        coordspath: string
+            path to outputfolder to save file with coordinates
+        coordsfilename: string
+            output filename, extention should be '.csv'
+        patches_per_tile: int
+            number of patches to extract per tile. Final number can be lower if the 
+            classes cover very few pixels
+        patch_size: int
+            size of patch to extract. Final extracted patches will include padding 
+            to be able to predict full image.
+        classes: list
+            list with classes to be predicted
+    
+    calls
+    -----
+        sample_patches_of_class()
+    
+    output
+    -------
+        outputfile: csv
+            each row contains tile-name and row + column of top-left pixel of patch: 
+            tile,row,column
+            saved at outputpath.
+    """
+    
+    # init
+    dirs = list_dir(inputpath) 
+    
+    if not os.path.isdir(coordspath):
+        os.makedirs(coordspath)  
+    
+    for i_lap, d in enumerate(dirs):
+        
+        # get tile
+        path_shp = inputpath + d + '/tare.tif'
+        ds = gdal.Open(path_shp,gdal.GA_ReadOnly)
+        gt = ds.GetRasterBand(1).ReadAsArray()
+        gt = np.uint16(gt)
+        ds = None
+        
+        # get options
+        if i_lap == 0:
+            options = find_patches_options(gt, patch_size_padded, d)
+        else:
+            options = options.append(find_patches_options(gt, patch_size_padded, d))
             
+        if i_lap % 50 == 0: 
+                print('\r {}/{}'.format(i_lap, len(dirs)),end='')
+    
+    # save in csv 
+    options['row'] = options['row'].multiply(patch_size_padded)
+    options['col'] = options['col'].multiply(patch_size_padded)
+    options.to_csv(coordspath+coordsfilename, index=False)
+
+           
 def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classes, resolution):
     """ extract the patches from the original images, normalize and save.
     
@@ -830,4 +896,38 @@ def count_classes(patchespath, coordsfile, class_names, res):
     percentage = tot_per_class / tot
 
     return percentage    
+
+def find_patches_options(gt, patch_size_padded, tile):
+    """
+    
+    arguments
+    ---------
+        gt: numpy.ndarray
+            2D numpy array with ground truth
+        patch_size_padded: int
+            patch size including padding for later predictions
+    
+    returns
+    -------
+        combinations_usable: pandas Dataframe
+            Dataframe with optional starting points for patches
+    """
+     
+    # find starting points on grid, should include gt
+    gt_usable = np.argwhere(gt!=0)
+    df_usable = pd.DataFrame(gt_usable, columns=['row', 'col'])
+    df_usable = df_usable.divide(patch_size_padded).astype(int)
+
+    pixels_per_patch = patch_size_padded*patch_size_padded
+    
+    combinations = df_usable.groupby(['row','col']).size().reset_index()
+    #combinations.rename(columns={0:'n_pixels'}, inplace=True)
+    combinations_usable = combinations[combinations[0] == pixels_per_patch].copy()
+    combinations_usable['tiles'] = tile
+    combinations_usable.drop(0, axis=1, inplace=True)
+    
+    
+    return combinations_usable
+    
+    #plot_patch_options(gt, combinations_usable, patch_size_padded)
     
