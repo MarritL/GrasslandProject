@@ -7,11 +7,11 @@ Created on Tue Sep  3 14:29:59 2019
 """
 
 compute = "optimus"
-patch_size=32
+patch_size=32*5
 patch_size_padded = patch_size*3
 classes = [638,659,654,650,770]
 class_names = ["tara0", "tara20", "tara50", "woods","no coltivable"]
-channels = [0,1,2,3] 
+channels = [0,1,2,3,4] 
 n_channels = len(channels)
 n_classes = len(classes)
 resolution = 20 #1 for 1m; 20 for 20cm
@@ -27,11 +27,12 @@ if compute == "optimus":
     dtmpath = 'marrit1/GrasslandProject/DTM/'
     coordspath='/data3/marrit/GrasslandProject/input/files/'
     coordsfilename= 'patches.csv'
+    coordsfilename_grid = 'patches_grid.csv'
     patchespath = '/marrit1/GrasslandProject/Patches/'
     tiles_cv_file = '/data3/marrit/GrasslandProject/input/files/folders_cv.npy'
     tiles_test_file = '/data3/marrit/GrasslandProject/input/files/folders_test.npy'
     model_savepath = '/data3/marrit/GrasslandProject/output/models/'
-    log_dir = '/data3/marrit/GrasslandProject/output/logs/'
+    log_dir = '/data3/marrit/GrasslandProject/output/logs/scalars/'
 elif compute == "personal":
     inputpath='/media/cordolo/elements/Data/'
     dtmpath = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/DTM/'
@@ -51,7 +52,8 @@ Generate the dataset by extracting patches from the tiles. These patches are
 divided over a training and test set, based on the original tiles.
 """
 
-from dataset import tile_to_patch, train_test_split, csv_to_patch
+from dataset import tile_to_patch, train_test_split, csv_to_patch, count_classes
+from dataset import tile_to_csv_grid
 
 # init
 patches_per_tile = 200
@@ -63,19 +65,26 @@ tile_to_patch(inputpath, coordspath, coordsfilename, dtmpath, patchespath,
               patch_size, patches_per_tile, classes, 20)
 
 # generate dataset (patches) at 1m resolution 
-coordsfile = coordspath+coordsfilename
+coordsfile = coordspath+coordsfilename_grid
 csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classes, 1)
 
 # split dataset in train + testset
 train_test_split(coordspath + coordsfilename, tiles_cv_file, tiles_test_file, n_test_tiles)
+
+# check if dataset is balanced
+percentage = count_classes(patchespath, coordsfile, class_names, resolution)
+
+# find new patches
+tile_to_csv_grid(inputpath, coordspath, coordsfilename, patch_size_padded)
+
 
 #%%
 """
 Check some of the generated patches
 """
 from dataset import get_patches
-from plots import plot_patches
-from plots import plot_random_patches
+from plots import plot_patches, plot_patches_on_tile, plot_random_patches
+import numpy as np
 
 patches, gt = get_patches(patchespath, [0,1,2,3,4,5], patch_size_padded, [0,1,2,3,4], resolution)
 
@@ -83,6 +92,12 @@ plot_patches(patches, gt, 6)
 
 plot_random_patches(patchespath, 6, class_names, classes) # full available patch_size (e.g. 480x480 for 20x20cm resolution)
 
+cv_tiles = np.load(tiles_cv_file, allow_pickle=True)
+tiles = np.random.choice(cv_tiles,10,False)
+    
+for i in range(5):
+    tile = tiles[i]
+    plot_patches_on_tile(coordspath+coordsfilename, inputpath, tile, patch_size_padded)
 #%% Initialize
 """
 Initialize model
@@ -90,23 +105,24 @@ Initialize model
 from models import models
 from tensorflow.keras import metrics
 from tensorflow.keras import optimizers
+#from keras.utils import multi_gpu_model
 
 # init 
-patch_size_padded = patch_size*3
 image_size = (patch_size_padded, patch_size_padded, n_channels)
 
 # model parameters
-modelname ="ResNet"
+modelname ="UNet" 
 args = {
   'dropout_rate': 0.,
   'weight_decay':0., 
-  'batch_momentum':0.
+  'batch_momentum':0.9
 }
-lr= 1e-3
+lr= 1e-4
 epsilon=1e-8
 
 # init model
 model = models.all_models[modelname](image_size, n_classes, **args)
+#model = multi_gpu_model(model, gpus=2)
 optimizer = optimizers.Adam(lr, epsilon)
 model.compile(optimizer=optimizer ,loss='categorical_crossentropy', metrics=[metrics.categorical_accuracy])
 
@@ -129,7 +145,7 @@ output_model_path = model_savepath + modelname + \
 # init
 folds = 4
 kth_fold = 0
-max_tiles = 80
+max_tiles = 500
 
 # training setup
 batch_size = 128
@@ -140,8 +156,8 @@ tensorboard = TensorBoard(log_dir = log_dir+'scalars/'+'{}'.format(strftime("%d%
 
 # load train and validation set
 index_train, index_val = train_val_split_subset(tiles_cv_file, coordspath + coordsfilename , folds, kth_fold, max_tiles)
-n_patches_train = len(index_train)
-n_patches_val = len(index_val)
+n_patches_train = 11*128#len(index_train)
+n_patches_val = 5*128#len(index_val)
 
 # init datagenerator
 train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, 
@@ -167,10 +183,11 @@ Train model
 """
 from time import localtime, strftime
 from matplotlib import pyplot as plt
-from dataset import train_val_split
+from dataset import train_val_split, train_val_split_random
 from datagenerator import DataGen
 from plots import plot_history
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
+#from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 import h5py
 
 output_model_path = model_savepath + modelname + \
@@ -183,25 +200,30 @@ kth_fold = 0
 
 # training setup
 batch_size = 128
-epochs=60
+epochs=30
 checkpoint = ModelCheckpoint(output_model_path, monitor='val_loss', save_best_only=True, mode='min')
 stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=8, mode='min')
-tensorboard = TensorBoard(log_dir = log_dir+'scalars/'+'{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())))
+tensorboard = TensorBoard(log_dir = log_dir+modelname+'_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())))
+pretrained_resnet50 = False
+if modelname in ("Pretrained_ResNet", "Pretrained_VGG16_T", "pretrained_VGG16"):
+    pretrained_resnet50 = True
 
 # load train and validation set
-index_train, index_val = train_val_split(tiles_cv_file, coordspath + coordsfilename, folds, kth_fold) 
-n_patches_train = 3072#len(index_train)
-n_patches_val = 3072#len(index_val)
+#index_train, index_val = train_val_split(tiles_cv_file, coordspath + coordsfilename, folds, kth_fold)
+index_train, index_val, index_test = train_val_split_random(coordspath + coordsfilename)
+ 
+n_patches_train = len(index_train)//2
+n_patches_val = len(index_val)//2
 
 # init datagenerator
 train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, 
                 shuffle=True, augment=True, indices=index_train , 
                 batch_size=batch_size, patch_size=patch_size_padded, 
-                n_classes=n_classes, channels=channels, max_size=max_size)
+                n_classes=n_classes, channels=channels, max_size=max_size,pretrained_resnet50=pretrained_resnet50)
 val_generator = DataGen(data_path = patchespath, n_patches = n_patches_val, 
                 shuffle=True, augment=False, indices=index_val , 
                 batch_size=batch_size, patch_size=patch_size_padded, 
-                n_classes=n_classes, channels=channels, max_size=max_size)
+                n_classes=n_classes, channels=channels, max_size=max_size,pretrained_resnet50=pretrained_resnet50)
 
 # run
 result = model.fit_generator(generator=train_generator, validation_data=val_generator, 
@@ -217,20 +239,23 @@ Test the model on independent test set
 from dataset import load_test_indices
 from datagenerator import DataGen
 from tensorflow.keras.models import load_model
+from models.BilinearUpSampling import BilinearUpSampling2D
 
 # init
 batch_size = 125
-model_file = 'UNetsubset_17092019_09:38:03_res:1_epoch:.05_valloss:.1.2534.hdf5'
+model_file = 'UNet_23092019_18:48:03_res:20_epoch:.30_valloss:.0.9189.hdf5'
+
 model_path = model_savepath + model_file
 
 index_test = load_test_indices(tiles_test_file, coordspath + coordsfilename)
-n_patches_test = 1000#len(index_test)
+n_patches_test = 5000#len(index_test)
 
 test_generator = DataGen(data_path=patchespath, n_patches = n_patches_test, shuffle=True, 
                 augment=False, indices=index_test , batch_size=batch_size, 
-                patch_size=patch_size_padded, n_classes=n_classes, channels=channels, max_size=max_size)
+                patch_size=patch_size_padded, n_classes=n_classes, channels=channels, max_size=max_size,
+                pretrained_resnet50=False)
 
-model = load_model(model_path)
+model = load_model(model_path, custom_objects={'BilinearUpSampling2D':BilinearUpSampling2D})
 
 evaluate = model.evaluate_generator(generator=test_generator)
 print('test loss, test acc:', evaluate)
@@ -255,21 +280,24 @@ model_path = model_savepath + model_file
 index_test = load_test_indices(tiles_test_file, coordspath + coordsfilename)
 n_patches_test = 100#len(index_test)
 
-test_generator = DataGen(data_path=patchespath, n_patches = n_patches_test, shuffle=False, 
+test_generator = DataGen(data_path=patchespath, n_patches = n_patches_test, shuffle=True, 
                 augment=False, indices=index_test , batch_size=batch_size, 
-                patch_size=patch_size_padded, n_classes=n_classes, channels=channels, max_size=max_size)
+                patch_size=patch_size_padded, n_classes=n_classes, channels=channels, max_size=max_size,
+                pretrained_resnet50=False)
 
-model = load_model(model_path)
+model = load_model(model_path, custom_objects={'BilinearUpSampling2D':BilinearUpSampling2D})
 
 predictions = model.predict_generator(generator=test_generator)
-patches, gt_patches = get_patches(patchespath, index_test[:6], patch_size_padded, channels, resolution=resolution)
+patches, gt_patches = get_patches(patchespath, index_test[:100], patch_size_padded, channels, resolution=resolution)
 
 # plots
-plot_predicted_patches(predictions[:6], gt_patches)
-cm = compute_confusion_matrix(gt_patches, predictions[:6], classes=[0,1,2,3,4], class_names=class_names)
-mcc = compute_matthews_corrcoef(gt_patches, predictions[:6])
-cm
+plot_predicted_patches(predictions[20:30], gt_patches)
+mcc = compute_matthews_corrcoef(gt_patches, predictions[:100])
 mcc
+#cm = compute_confusion_matrix(gt_patches, predictions[:100], classes=[0,1,2,3,4], class_names=class_names)
+cm = compute_confusion_matrix(gt_patches, predictions[:100], classes=[0,1,2,3,4], class_names=class_names, user_producer=False, normalize=True)
+cm
+
 # =============================================================================
 # confusion_matrix(gt_patches, predictions[80:86], classes = [0,1,2,3,4], class_names=class_names, normalize=True,
 #                       title='Normalized confusion matrix')
@@ -301,7 +329,7 @@ index_predict = [k for k in index_predict]
 
 patches, gt_patches = get_patches(patchespath, index_predict, patch_size_padded, channels, resolution=resolution)
 
-model = load_model(model_path)
+model = load_model(model_path, custom_objects={'BilinearUpSampling2D':BilinearUpSampling2D})
 
 predictions = model.predict_generator(patches)
 
@@ -310,10 +338,12 @@ plot_predicted_patches(predictions[:6], gt_patches)
 
 # plots
 plot_predicted_patches(predictions, gt_patches)
-cm = compute_confusion_matrix(gt_patches, predictions, classes=[0,1,2,3,4], class_names=class_names)
+
 mcc = compute_matthews_corrcoef(gt_patches, predictions)
-cm
 mcc
+cm = compute_confusion_matrix(gt_patches, predictions, classes=[0,1,2,3,4], class_names=class_names)
+cm
+
 # =============================================================================
 # plot_confusion_matrix(gt_patches, predictions, classes = [0,1,2,3,4], class_names=class_names, normalize=True,
 #                       title='Normalized confusion matrix')
