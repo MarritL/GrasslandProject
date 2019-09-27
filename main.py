@@ -28,7 +28,7 @@ if compute == "optimus":
     coordspath='/data3/marrit/GrasslandProject/input/files/'
     coordsfilename= 'patches.csv'
     coordsfilename_grid = 'patches_grid.csv'
-    patchespath = '/marrit1/GrasslandProject/Patches/'
+    patchespath = '/marrit1/GrasslandProject/PatchesNew/'
     tiles_cv_file = '/data3/marrit/GrasslandProject/input/files/folders_cv.npy'
     tiles_test_file = '/data3/marrit/GrasslandProject/input/files/folders_test.npy'
     model_savepath = '/data3/marrit/GrasslandProject/output/models/'
@@ -74,9 +74,18 @@ train_test_split(coordspath + coordsfilename, tiles_cv_file, tiles_test_file, n_
 # check if dataset is balanced
 percentage = count_classes(patchespath, coordsfile, class_names, resolution)
 
-# find new patches
-tile_to_csv_grid(inputpath, coordspath, coordsfilename, patch_size_padded)
+#%% Generate new dataset
+"""
+Generate new dataset based on grid to avoid overlapping patches
+"""
+from dataset import tile_to_csv_grid, csv_to_patch
 
+# find patches and save in csv
+tile_to_csv_grid(inputpath, coordspath, coordsfilename_grid, patch_size_padded)
+
+# save patches on disk
+coordsfile = coordspath+coordsfilename_grid
+csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classes, resolution)
 
 #%%
 """
