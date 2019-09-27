@@ -478,8 +478,8 @@ def read_patch_1m(inputRGB, inputNIR, inputDTMfile, inputGT, coords_df, patch_si
     n_features = 5 #R,G,B, NIR, DTM
     
     folder, r, c = coords_df.iloc[idx]
-    r = int(r)
-    c = int(c)
+    r = int(r//5)
+    c = int(c//5)
 
     patch = np.zeros([patch_size_padded,patch_size_padded,n_features],dtype=np.float16)
     
@@ -547,12 +547,12 @@ def read_patch(inputpath, dtmpath, coords_df, patch_size_padded, idx, classes):
         gt: numpy.ndarray 
             patch of size (patch_size, patch_size, n_classes) with one-hot encoded ground truth
     """
-
+    
     n_features = 5 #R,G,B, NIR, DTM
     
     folder, r, c = coords_df.iloc[idx]
-    r = int(r)*5
-    c = int(c)*5
+    r = int(r)
+    c = int(c)
 
     patch = np.zeros([patch_size_padded,patch_size_padded,n_features],dtype=np.float16)
     
@@ -930,4 +930,9 @@ def find_patches_options(gt, patch_size_padded, tile):
     return combinations_usable
     
     #plot_patch_options(gt, combinations_usable, patch_size_padded)
-    
+
+not_in = []
+
+for dirs in dirs_array: 
+    if dirs not in new_dataset_dirs: 
+        not_in.append(dirs)
