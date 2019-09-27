@@ -1,6 +1,6 @@
 # GrasslandProject
 Author: Marrit Leenstra<br/> 
-Date: 03-09-2019
+Date: 27-09-2019
 
 ## Task
 Land cover classification of alpine pastures (5 classes image segmentation)
@@ -42,7 +42,7 @@ Mehodology to create dataset:
 4. **train_val_split(...)**: In the training phase the trainingset is divided over k - folds that can be used for cross-validation. This split is again based on the original image. (e.g. 4 folds: train: n=63326 and validation n=20979). 
 
 ### Models
-**models.py**: script containing the intitialization of all models. Keras and Tensorflow are used to build the models. Models can use blocks from **blocks.py**. A bilinearUpSampling class is saved separately in **BilinearUpSampling.py**.<br/>
+**models.py**: script containing the intitialization of all models. Keras and Tensorflow are used to build the models. Models can use blocks from **blocks.py**. A bilinearUpSampling class is saved separately in **BilinearUpSampling.py**.<br/><br/>
 At the moment the modelClass contains five models:
 * A modified ResNet50
 * UNet
@@ -61,7 +61,7 @@ Optional:
 ### Metrics
 **metrics.py**: script with methods to compute validation metrics.<br/>
 1. **compute_confusion_matrix**: computes confusion matrix based on given patches, optional plotting, normalization and user/producer accuracy. Calls: compute_user_producer_acc() and plot_confusion_matrix(). Has some problems when not all classes are present in patch and compute_user_producer_acc not working yet.
-2.**compute_matthews_corrcoef**: computes the Matthews correlation coefficient based on given patches.
+2. **compute_matthews_corrcoef**: computes the Matthews correlation coefficient based on given patches.
 
 ### Plots
 **plots.py**: contains all plotting methods used in the project<br/>
