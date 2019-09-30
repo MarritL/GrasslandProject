@@ -437,6 +437,10 @@ def pretrained_VGG16_transpose(input_shape, n_classes, weight_decay=0., batch_mo
 
     return model
 
+
+##### Try Xception net 
+
+
 all_models = {
     "UNet": UNet,
     "ResNet": AtrousFCN_Resnet53_16s,

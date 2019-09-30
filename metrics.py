@@ -36,6 +36,11 @@ def compute_confusion_matrix(gt, pred, classes, class_names, user_producer=True,
             title of the plot. default = None
         cmap: matplotlib color map
             cmap of the plot. default = plt.cm.Blues
+            
+    calls:
+    ------
+        compute_user_producer_acc()
+        plot_confusion_matrix()
 
     returns
     -------

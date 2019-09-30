@@ -119,7 +119,7 @@ def plot_predicted_patches(predictions, groundtruth):
     ep.draw_legend(grtr,titles=["tara0", "tara20", "tara50", "woods","no coltivable"],classes=[0, 1, 2, 3,4])
      
 def plot_patches(patch, gt, n_patches):
-    """ plot random patches with ground truth
+    """ plot patches with ground truth
     
     arguments
     ---------
@@ -162,7 +162,7 @@ def plot_patches(patch, gt, n_patches):
     ep.draw_legend(grtr,titles=["tara0", "tara20", "tara50", "woods","no coltivable"],classes=[0, 1, 2, 3,4])
 
 def plot_predicted_probabilities(predictions, groundtruth, n_classes):
-    """ plot predicted patches with ground truth
+    """ plot predictions with ground truth
     
     arguments
     ---------
@@ -177,7 +177,8 @@ def plot_predicted_probabilities(predictions, groundtruth, n_classes):
     
     output
     ------
-        figure with n predictions plotted in first row and ground truth in second row.
+        figure with predictionsmaps plotted in first n rows and ground truth in last row. 
+        The columns represent differnet patches.
     """
 
     colors_extra = ['linen', 'lightgreen', 'green', 'darkgreen', 'yellow', 'black']
@@ -356,7 +357,7 @@ def pca_plot(pixel_values, labels):
     plt.show()
     
 def plot_patches_on_tile(coordsfile, tiles_path, tile, patch_size_padded):
-    """
+    """ plot the patches on top of the orginal tile
     
     arguments
     ---------
@@ -449,8 +450,8 @@ def plot_patch_options(gt, starting_points, patch_size_padded):
     
     # Create a square for patch
     for index, row in starting_points.iterrows(): 
-        r = row['row']*patch_size_padded
-        c = row['col']*patch_size_padded
+        r = row['row']
+        c = row['col']
         fill = row['patch']
         patch = patches.Rectangle((c,r),patch_size_padded,patch_size_padded,linewidth=1,edgecolor='r',facecolor=fill)
     
@@ -458,5 +459,34 @@ def plot_patch_options(gt, starting_points, patch_size_padded):
         ax.add_patch(patch)
     
     plt.show()   
+
+def plot_tile(inputpath, tile):
+    """
+
+    """    
+    
+    colors = ['black', 'linen', 'lightgreen', 'green', 'darkgreen', 'yellow']
+    cmap = ListedColormap(colors)
+
+    # get tile
+    path_shp = inputpath + tile + '/tare.tif'
+    ds = gdal.Open(path_shp,gdal.GA_ReadOnly)
+    gt = ds.GetRasterBand(1).ReadAsArray()
+    gt = np.uint16(gt)
+    ds = None
+    
+    gt[gt==638] = 1
+    gt[gt==659] = 2
+    gt[gt==654] = 3  
+    gt[gt==650] = 4
+    gt[gt==770] = 5
+    
+    # Create figure and axes
+    fig,ax = plt.subplots(figsize=(5,5))
+    
+    # plot image
+    ax.imshow(gt, cmap=cmap, vmin=0, vmax=5)
+    
+    plt.show()
     
     

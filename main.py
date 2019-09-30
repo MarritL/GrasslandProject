@@ -46,14 +46,13 @@ elif compute == "personal":
 
 patchespath = patchespath + 'res_' + str(resolution) + '/'
 
-#%% Generate dataset
+#%% Generate old dataset
 """
 Generate the dataset by extracting patches from the tiles. These patches are
 divided over a training and test set, based on the original tiles.
 """
 
 from dataset import tile_to_patch, train_test_split, csv_to_patch, count_classes
-from dataset import tile_to_csv_grid
 
 # init
 patches_per_tile = 200
@@ -307,14 +306,6 @@ mcc
 cm = compute_confusion_matrix(gt_patches, predictions[:100], classes=[0,1,2,3,4], class_names=class_names, user_producer=False, normalize=True)
 cm
 
-# =============================================================================
-# confusion_matrix(gt_patches, predictions[80:86], classes = [0,1,2,3,4], class_names=class_names, normalize=True,
-#                       title='Normalized confusion matrix')
-# =============================================================================
-
-
-
-
 #%% Predict
 """
 Predict small amount of patches
@@ -361,6 +352,9 @@ cm
 
 
 #%%
+"""
+some small test to get information about classes in tiles, work-in-progress
+"""
 # extact classes
 tara0 = np.where(patch8000[:,:,5]==1)
 tara20 = np.where(patch8000[:,:,6]==1)
