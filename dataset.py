@@ -147,7 +147,7 @@ def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classe
     elif resolution == 1:
         warpedtile = None
         #for idx, tile in enumerate(coords[0]): 
-        for idx, d in enumerate(coords[0]):    
+        for idx, d in enumerate(coords['tiles']):    
             # resample rgb + nir to 1m (keep in memory (no space on disk))
             if not d == warpedtile:
                 dtm_file = inputpath + d + '/dtm135.tif'
