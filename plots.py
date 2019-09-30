@@ -377,7 +377,7 @@ def plot_patches_on_tile(coordsfile, tiles_path, tile, patch_size_padded):
     
     colors = ['black', 'linen', 'lightgreen', 'green', 'darkgreen', 'yellow']
     cmap = ListedColormap(colors)
-    coords_df = pd.read_csv(coordsfile, sep=',',header=None, names=['tiles', 'row', 'col'])
+    coords_df = pd.read_csv(coordsfile, sep=',')
     is_tile = coords_df['tiles'] == tile
     patches_tile = coords_df[is_tile]
     
