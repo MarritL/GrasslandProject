@@ -7,14 +7,14 @@ Created on Tue Sep  3 14:29:59 2019
 """
 
 compute = "optimus"
-patch_size=32*5
+patch_size=32
 patch_size_padded = patch_size*3
 classes = [638,659,654,650,770]
 class_names = ["tara0", "tara20", "tara50", "woods","no coltivable"]
 channels = [0,1,2,3,4] 
 n_channels = len(channels)
 n_classes = len(classes)
-resolution = 20 #1 for 1m; 20 for 20cm
+resolution = 1 #1 for 1m; 20 for 20cm
 if resolution == 1:
     max_size = 96
 elif resolution == 20:
@@ -84,7 +84,12 @@ tile_to_csv_grid(inputpath, coordspath, coordsfilename_grid, patch_size_padded)
 
 # save patches on disk
 coordsfile = coordspath+coordsfilename_grid
-csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classes, resolution)
+csv_to_patch(inputpath, dtmpath, patchespath='/marrit1/GrasslandProject/PatchesNew/res_20/', 
+        coordsfile='/data3/marrit/GrasslandProject/input/files/patches_grid.csv', 
+        patch_size=160, classes=[638,659,654,650,770], resolution=20)
+csv_to_patch(inputpath, dtmpath, patchespath='/marrit1/GrasslandProject/PatchesNew/res_1/', 
+        coordsfile='/data3/marrit/GrasslandProject/input/files/patches_grid.csv', 
+        patch_size=32, classes=[638,659,654,650,770], resolution=1)
 
 #%%
 """
