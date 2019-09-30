@@ -408,7 +408,7 @@ def plot_patches_on_tile(coordsfile, tiles_path, tile, patch_size_padded):
     for index, row in patches_tile.iterrows(): 
         r = int(row['row'])
         c = int(row['col'])
-        patch = patches.Rectangle((c,r),patch_size_padded*5,patch_size_padded*5,linewidth=1,edgecolor='r',facecolor='none')
+        patch = patches.Rectangle((c,r),patch_size_padded,patch_size_padded,linewidth=1,edgecolor='r',facecolor='none')
     
         # Add the patch to the Axes
         ax.add_patch(patch)
