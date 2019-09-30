@@ -382,7 +382,7 @@ def train_test_split(coordsfile, tiles_cv_file, tiles_test_file, n_test_tiles):
     
     """
    
-    coords_df = pd.read_csv(coordsfile, sep=',',header=None, names=['tiles', 'row', 'col'])
+    coords_df = pd.read_csv(coordsfile, sep=',')
     coords_df = coords_df['tiles']
     
     # train / test split
@@ -420,7 +420,7 @@ def train_val_split(tiles_cv_file, coordsfile, folds, k):
             indices of validation patches in coordsfile
      
     """
-    coords_df = pd.read_csv(coordsfile, sep=',',header=None, names=['tiles', 'row', 'col'])
+    coords_df = pd.read_csv(coordsfile, sep=',')
     coords_df = coords_df['tiles']
     
     tiles = np.load(tiles_cv_file, allow_pickle=True)
@@ -459,7 +459,7 @@ def train_val_split_random(coordsfile):
             indices of test patches in coordsfile
      
     """    
-    coords_df = pd.read_csv(coordsfile, sep=',',header=None, names=['tiles', 'row', 'col'])
+    coords_df = pd.read_csv(coordsfile, sep=',')
     n_patches = len(coords_df)
     patches = np.arange(n_patches)  
     
@@ -496,7 +496,7 @@ def train_val_split_subset(tiles_cv_file, coordsfile, folds, k, max_tiles):
             indices of validation patches in coordsfile
      
     """
-    coords_df = pd.read_csv(coordsfile, sep=',',header=None, names=['tiles', 'row', 'col'])
+    coords_df = pd.read_csv(coordsfile, sep=',')
     coords_df = coords_df['tiles']
     
     tiles = np.load(tiles_cv_file, allow_pickle=True)
@@ -531,7 +531,7 @@ def load_test_indices(tiles_test_file, coordsfile):
         index_test: numpy ndarray
             indices of test patches in coordsfile     
     """
-    coords_df = pd.read_csv(coordsfile, sep=',',header=None, names=['tiles', 'row', 'col'])
+    coords_df = pd.read_csv(coordsfile, sep=',')
     coords_df = coords_df['tiles']
     
     testtiles = np.load(tiles_test_file, allow_pickle=True)
@@ -611,7 +611,7 @@ def count_classes(patchespath, coordsfile, class_names, res):
             pandas series with the percentage per class
     """
     # read coordsfile
-    coords_df = pd.read_csv(coordsfile, sep=',',header=None, names=['tiles', 'row', 'col'])
+    coords_df = pd.read_csv(coordsfile, sep=',')
     
     # add empty colums for class counts
     col_names = {i: class_names[i]+'_' + str(res) for i in range(len(class_names))}
