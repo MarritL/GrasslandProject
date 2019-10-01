@@ -8,6 +8,7 @@ Created on Mon Sep  2 18:18:33 2019
 import random
 import numpy as np
 import tensorflow.keras as keras
+from dataset import to_categorical_classes
 
 class DataGen(keras.utils.Sequence):
     'Generates data for Keras'   
@@ -63,6 +64,12 @@ class DataGen(keras.utils.Sequence):
             
             if self.augment:
                 X[i,],y[i,] = self.data_augmentation(X[i,],y[i,])
+                
+            if self.n_classes == 3:
+                gt_classes = np.argmax(y[i,], axis=2)
+                gt_classes[gt_classes == 1] = 0
+                gt_classes[gt_classes == 2] = 0
+                y[i,] = to_categorical_classes(gt_classes, [0,3,4])
         
         if self.patch_size < self.max_size:
             X = X[:,0:self.patch_size, 0:self.patch_size,]
