@@ -46,6 +46,16 @@ class DataGen(keras.utils.Sequence):
         X, y = self.__data_generation(list_idx_temp)
         if self.pretrained_resnet50:
             X = self.__preprocess_imagenet(X)
+            
+        # group tara classes in one single class
+        if self.n_classes == 3:
+            y_full = y
+            y = np.zeros((self.batch_size, self.max_size, self.max_size, 3), dtype=np.int8)
+            for i in range(self.batch_size):
+                gt_classes = np.argmax(y_full[i,], axis=2)
+                gt_classes[gt_classes == 1] = 0
+                gt_classes[gt_classes == 2] = 0
+                y[i,] = to_categorical_classes(gt_classes, [0,3,4])
         
         return X,y
     
@@ -64,12 +74,6 @@ class DataGen(keras.utils.Sequence):
             
             if self.augment:
                 X[i,],y[i,] = self.data_augmentation(X[i,],y[i,])
-                
-            if self.n_classes == 3:
-                gt_classes = np.argmax(y[i,], axis=2)
-                gt_classes[gt_classes == 1] = 0
-                gt_classes[gt_classes == 2] = 0
-                y[i,] = to_categorical_classes(gt_classes, [0,3,4])
         
         if self.patch_size < self.max_size:
             X = X[:,0:self.patch_size, 0:self.patch_size,]
