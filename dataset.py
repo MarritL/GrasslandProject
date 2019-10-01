@@ -437,7 +437,7 @@ def train_val_split(tiles_cv_file, coordsfile, folds, k):
     index_val = np.array(coords_val.index)
     index_train = np.array(coords_train.index)
     
-    return(random.shuffle(index_train), random.shuffle(index_val))
+    return(index_train,index_val)
 
 def train_val_split_random(tiles_cv_file, coordsfile, n_val_patches):    
     """ select indices of train and validation patches in coordsfile.
@@ -471,7 +471,7 @@ def train_val_split_random(tiles_cv_file, coordsfile, n_val_patches):
     index_train = coords_trainval[np.isin(coords_trainval.index, index_val) == False]
     index_train = np.array(index_train.index)
     
-    return(index_train.shuffle, index_val)
+    return(random.shuffle(index_train), random.shuffle(index_val))
     
 def train_test_split_random(coordsfile):    
     """ select indices of train, validation and test patches in coordsfile.
