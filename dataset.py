@@ -439,7 +439,7 @@ def train_val_split(tiles_cv_file, coordsfile, folds, k):
     
     return(random.shuffle(index_train), random.shuffle(index_val))
 
-def train_val_split_random(tiles_cv_file, coordsfile):    
+def train_val_split_random(tiles_cv_file, coordsfile, n_val_patches):    
     """ select indices of train and validation patches in coordsfile.
         Naive method, does not take tiles into account original tiles, no 
         splits for CV. However, test tiles are removed based on original tiles
@@ -467,7 +467,7 @@ def train_val_split_random(tiles_cv_file, coordsfile):
     # remove indices used for testing
     coords_trainval = coords_df[np.isin(coords_df, tiles)]
     
-    index_val = np.random.choice(coords_trainval.index, 15000, replace=False)
+    index_val = np.random.choice(coords_trainval.index, n_val_patches, replace=False)
     index_train = coords_trainval[np.isin(coords_trainval.index, index_val) == False]
     index_train = np.array(index_train.index)
     
