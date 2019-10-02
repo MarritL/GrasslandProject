@@ -62,18 +62,21 @@ class DataGen(keras.utils.Sequence):
         if self.n_classes == 2:
             y_full = y
             y = np.zeros((self.batch_size, self.max_size, self.max_size, 2), dtype=np.int8)
+            sample_weights = np.zeros((self.batch_size,self.patch_size*self.patch_size,self.n_classes))
             for i in range(self.batch_size):
                 gt_classes = np.argmax(y_full[i,], axis=2)
                 edges = ndimage.sobel(gt_classes)
                 edges[edges !=0] = 1
                 y[i,] = to_categorical_classes(edges, [0,1])
+                
+                sample_weights[i,:, 0] += 1
+                sample_weights[i,:, 1] += 1000
         
         ######### TEST ############
         y = y.reshape(self.batch_size, self.patch_size*self.patch_size,self.n_classes)
         
-        sample_weights = np.zeros((self.patch_size*self.patch_size,self.n_classes))
-        sample_weights[:, 0] += 1
-        sample_weights[:, 1] += 1000
+        
+        
         
         return X,y,sample_weights
     
