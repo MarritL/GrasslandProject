@@ -6,7 +6,7 @@ Created on Wed Sep  4 10:13:08 2019
 @author: cordolo
 """
 from tensorflow.keras import Model
-from tensorflow.keras.layers import Input, Dropout, Conv2D,BatchNormalization,Activation,MaxPooling2D, Conv2DTranspose, concatenate
+from tensorflow.keras.layers import Input, Dropout, Conv2D,BatchNormalization,Activation,MaxPooling2D, Conv2DTranspose, concatenate, Reshape
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.applications.resnet50 import ResNet50
 from tensorflow.keras.applications.vgg16 import VGG16
@@ -119,6 +119,9 @@ def UNet(input_shape, n_classes, dropout_rate=0.5,weight_decay=0., batch_momentu
     c9 = Dropout(dropout_rate) (c9)
     
     outputs = Conv2D(n_classes, (1, 1), activation='softmax') (c9)
+    
+    ######## TEST ###########
+    outputs = Reshape(input_shape[0]*input_shape[1], input_shape[2])(outputs)
     
     model = Model(inputs=[inputs], outputs=[outputs])
     return(model)
