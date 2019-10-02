@@ -121,7 +121,7 @@ def UNet(input_shape, n_classes, dropout_rate=0.5,weight_decay=0., batch_momentu
     outputs = Conv2D(n_classes, (1, 1), activation='softmax') (c9)
     
     ######## TEST ###########
-    outputs = Reshape((input_shape[0]*input_shape[1], input_shape[2]))(outputs)
+    outputs = Reshape((input_shape[0]*input_shape[1], n_classes))(outputs)
     
     model = Model(inputs=[inputs], outputs=[outputs])
     return(model)
