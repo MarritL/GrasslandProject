@@ -69,7 +69,7 @@ class DataGen(keras.utils.Sequence):
                 y[i,] = to_categorical_classes(edges, [0,1])
         
         ######### TEST ############
-        y = y.reshape(self.batch_size, self.patch_size*self.patch_size,self.n_classes)
+        y = y.reshape(self.patch_size*self.patch_size,self.n_classes)
         
         sample_weights = np.zeros((self.patch_size*self.patch_size,self.n_classes))
         sample_weights[:, 0] += 1
