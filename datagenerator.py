@@ -66,7 +66,7 @@ class DataGen(keras.utils.Sequence):
                 gt_classes = np.argmax(y_full[i,], axis=2)
                 edges = ndimage.sobel(gt_classes)
                 edges[edges !=0] = 1
-                y[i,] = to_categorical_classes(gt_classes, [0,1])
+                y[i,] = keras.utils.to_categorical(gt_classes)
         
         return X,y
     
