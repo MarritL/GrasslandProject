@@ -71,7 +71,7 @@ class DataGen(keras.utils.Sequence):
         ######### TEST ############
         y = y.reshape(self.batch_size, self.patch_size*self.patch_size,self.n_classes)
         
-        sample_weights = np.zeros((self.patch_size*self.patch_size_padded,self.n_classes))
+        sample_weights = np.zeros((self.patch_size*self.patch_size,self.n_classes))
         sample_weights[:, 0] += 1
         sample_weights[:, 1] += 1000
         
