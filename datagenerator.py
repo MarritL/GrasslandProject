@@ -68,6 +68,9 @@ class DataGen(keras.utils.Sequence):
                 edges[edges !=0] = 1
                 y[i,] = to_categorical_classes(edges, [0,1])
         
+        ######### TEST ############
+        y.reshape(self.batch_size, self.patch_size*self.patch_size,self.n_classes)
+        
         return X,y
     
     def __data_generation(self, list_idx_temp):
@@ -92,7 +95,7 @@ class DataGen(keras.utils.Sequence):
         
         if self.n_channels < 5:
             X = X[:,:,:,self.channels]
-            
+        
         return X, y
     
     
