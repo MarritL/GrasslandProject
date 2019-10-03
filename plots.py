@@ -18,7 +18,7 @@ from osgeo import gdal
 import matplotlib.patches as patches
 
 # colormap
-colors = ['linen', 'lightgreen', 'green', 'darkgreen', 'yellow']
+colors = ['linen', 'lightgreen', 'limegreen', 'darkgreen', 'yellow']
 cmap = ListedColormap(colors)
 
 def plot_random_patches(patches_path, n_patches, classes, class_names):
@@ -74,7 +74,7 @@ def plot_random_patches(patches_path, n_patches, classes, class_names):
     
     ep.draw_legend(grtr,titles=class_names,classes=classes)
 
-def plot_predicted_patches(predictions, groundtruth):
+def plot_predicted_patches(predictions, groundtruth, patch=None):
     """ plot predicted patches with ground truth
     
     arguments
@@ -85,17 +85,24 @@ def plot_predicted_patches(predictions, groundtruth):
         groundtruth: numpy nd.array
             one-hot lables of patches
             shape = (n_patches, patch_size_padded, patch_size_padded, n_classes)
+        patch: numpy.ndarray
+            image of patch
+            shape = (n_patches, patch_size_padded, patch_size_padded, n_classes)
     
     output
     ------
         figure with n predictions plotted in first row and ground truth in second row.
+        if patch is specified the third row contains RGB image
     """
 
     n_patches = len(predictions)
     rows = 2
+    if np.any(patch != None):
+        rows = 3
+    
     
     # prepare
-    fig, ax = plt.subplots(rows,n_patches)
+    fig, ax = plt.subplots(rows,n_patches, figsize=(15,15))
     
     for i in range(n_patches):
     
@@ -115,6 +122,11 @@ def plot_predicted_patches(predictions, groundtruth):
         
         # plot gt 
         grtr = ax[1,i].imshow(plt_gt, cmap=cmap, vmin=0, vmax=4) 
+        
+        # plot RGB
+        if np.any(patch != None):
+            plt_im = patch[i][:, :, [0,1,2]].astype(np.float64)
+            ax[2,i].imshow(plt_im)
     
     ep.draw_legend(grtr,titles=["tara0", "tara20", "tara50", "woods","no coltivable"],classes=[0, 1, 2, 3,4])
      
@@ -161,7 +173,7 @@ def plot_patches(patch, gt, n_patches):
     
     ep.draw_legend(grtr,titles=["tara0", "tara20", "tara50", "woods","no coltivable"],classes=[0, 1, 2, 3,4])
 
-def plot_predicted_probabilities(predictions, groundtruth, n_classes):
+def plot_predicted_probabilities(predictions, groundtruth, n_classes, uncertainty):
     """ plot predictions with ground truth
     
     arguments
@@ -174,6 +186,9 @@ def plot_predicted_probabilities(predictions, groundtruth, n_classes):
             shape = (n_patches, patch_size_padded, patch_size_padded, n_classes)
         nclasses: int
             number of prediction classes
+        uncertainty: float between 0 and 1
+            if uncertainty is higher than this number, class 'unsure' is assigned
+            
     
     output
     ------
@@ -181,7 +196,7 @@ def plot_predicted_probabilities(predictions, groundtruth, n_classes):
         The columns represent differnet patches.
     """
 
-    colors_extra = ['linen', 'lightgreen', 'green', 'darkgreen', 'yellow', 'black']
+    colors_extra = ['linen', 'lightgreen', 'limegreen', 'darkgreen', 'yellow', 'black']
     cmap_extra = ListedColormap(colors_extra)
     
     n_patches = len(predictions)
@@ -198,7 +213,7 @@ def plot_predicted_probabilities(predictions, groundtruth, n_classes):
         # prepare prediction plot
         plt_im  = np.zeros_like(im, dtype=np.uint8)
         plt_im = np.argmax(im, axis=2)
-        plt_im[np.max(im, axis=2)<0.5] = 5
+        plt_im[np.max(im, axis=2)<(1-uncertainty)] = 5
 
         
         # plot probability maps
@@ -217,7 +232,61 @@ def plot_predicted_probabilities(predictions, groundtruth, n_classes):
     
     ep.draw_legend(im,titles=["tara0", "tara20", "tara50", "woods","no coltivable","not sure"],classes=[0, 1, 2, 3,4,5])
     
-
+def plot_prediction_uncertainty(predictions, groundtruth, n_classes):
+    """plot predictions uncertainties
+    
+    arguments
+    ---------
+        predictions: numpy nd.array
+            probability maps of classes of patches
+            shape = (n_patches, patch_size_padded, patch_size_padded, n_classes)
+        groundtruth: numpy nd.array
+            one-hot lables of patches
+            shape = (n_patches, patch_size_padded, patch_size_padded, n_classes)
+        nclasses: int
+            number of prediction classes
+    
+    output
+    ------
+        figure with prediction plotted in first row, the uncertainty map in the
+        second row and the ground truth in last row. 
+        The columns represent different patches
+    """
+    
+    n_patches = len(predictions)
+    rows = 3
+    
+    # prepre
+    fig, ax = plt.subplots(rows,n_patches)
+    
+    for i in range(n_patches):
+    
+        prob = predictions[i]
+        gt = groundtruth[i]
+        
+        # prepare prediction uncertainty plot
+        plt_prob  = np.zeros_like(prob, dtype=np.float32)
+        plt_prob = np.max(prob, axis=2)
+        
+        # prepare prediction plot
+        plt_im  = np.zeros_like(prob, dtype=np.uint8)
+        plt_im = np.argmax(prob, axis=2)
+        
+        # prepare gt plot
+        plt_gt  = np.zeros_like(gt, dtype=np.uint8)
+        plt_gt = np.argmax(gt, axis=2)
+        
+        # plot prediction 
+        im = ax[0,i].imshow(plt_im, cmap=cmap, vmin=0, vmax=4) 
+        
+        # plot uncertainty
+        prob = ax[1,i].imshow(plt_prob, vmin=0, vmax=1)
+        
+        # plot gt 
+        grtr = ax[2,i].imshow(plt_gt, cmap=cmap, vmin=0, vmax=4) 
+    
+    plt.colorbar(prob, ax=ax[1,i])
+    
 
 def plot_confusion_matrix(cm, class_names, normalize = True, title=None, cmap=plt.cm.Blues):
     """
@@ -452,8 +521,7 @@ def plot_patch_options(gt, starting_points, patch_size_padded):
     for index, row in starting_points.iterrows(): 
         r = row['row']
         c = row['col']
-        fill = row['patch']
-        patch = patches.Rectangle((c,r),patch_size_padded,patch_size_padded,linewidth=1,edgecolor='r',facecolor=fill)
+        patch = patches.Rectangle((c,r),patch_size_padded,patch_size_padded,linewidth=1,edgecolor='r',facecolor=None)
     
         # Add the patch to the Axes
         ax.add_patch(patch)
@@ -461,8 +529,18 @@ def plot_patch_options(gt, starting_points, patch_size_padded):
     plt.show()   
 
 def plot_tile(inputpath, tile):
-    """
-
+    """ plot a complete tile
+    
+    arguments
+    ---------
+        inputpath: string
+            path to folders with tiles. Each tile should be in separate folder 
+        tile: string
+            tileidentifier, should be the file where tile is saved
+            
+    return
+    ------
+        plot of specified tile
     """    
     
     colors = ['black', 'linen', 'lightgreen', 'green', 'darkgreen', 'yellow']
@@ -490,3 +568,61 @@ def plot_tile(inputpath, tile):
     plt.show()
     
     
+# =============================================================================
+# plot_tile(inputpath, '025164w')
+# 
+# # find starting points on grid, should include gt
+# def get_patches_for_full_images():    
+#     colors = ['black', 'linen', 'lightgreen', 'green', 'darkgreen', 'yellow']
+#     cmap = ListedColormap(colors)
+#     
+#     # load tile
+#     path_shp = inputpath + tile + '/tare.tif'
+#     ds = gdal.Open(path_shp,gdal.GA_ReadOnly)
+#     gt = ds.GetRasterBand(1).ReadAsArray()
+#     gt = np.uint16(gt)
+#     ds = None
+#     
+#     # get classes right
+#     gt[gt==638] = 1
+#     gt[gt==659] = 2
+#     gt[gt==654] = 3  
+#     gt[gt==650] = 4
+#     gt[gt==770] = 5
+#     
+#     # find starting point of patches
+#     gt_usable = np.argwhere(gt!=0)
+#     df_usable = pd.DataFrame(gt_usable, columns=['row', 'col'])
+#     df_usable = df_usable.divide(patch_size).astype(int)
+#     combinations = df_usable.groupby(['row','col']).size().reset_index()
+#     combinations_usable = combinations
+#     combinations_usable['tiles'] = tile
+#     combinations_usable.drop(0, axis=1, inplace=True)
+#     combinations_usable['row'] = combinations_usable['row'].multiply(patch_size)
+#     combinations_usable['col'] = combinations_usable['col'].multiply(patch_size)
+#     
+#     # remove 'halve' patches on edge
+#     combinations_usable = combinations_usable[combinations_usable['row'] < (gt.shape[0]-patch_size_padded)]
+#     combinations_usable = combinations_usable[combinations_usable['col'] < (gt.shape[1]-patch_size_padded)]
+#     
+#     # save in csv-file
+#     combinations_usable.to_csv(coordspath+coordsfilename, index=False)
+# 
+# 
+#     fig,ax = plt.subplots(figsize=(10,10))
+#     
+#     # plot image
+#     ax.imshow(gt, cmap=cmap, vmin=0, vmax=5)
+#     
+#     # Create a square for patch
+#     for index, row in combinations_usable.iterrows(): 
+#         r = row['row']
+#         c = row['col']
+#         patch = patches.Rectangle((c,r),patch_size,patch_size,linewidth=1,edgecolor='r', fill=False)
+#     
+#         # Add the patch to the Axes
+#         ax.add_patch(patch)
+#     
+#     plt.show() 
+# 
+# =============================================================================
