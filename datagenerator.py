@@ -71,11 +71,13 @@ class DataGen(keras.utils.Sequence):
         ######### TEST ############
         #y = y.reshape(self.patch_size*self.patch_size,self.n_classes)
         
-        sample_weights = np.zeros((self.patch_size*self.patch_size,self.n_classes))
-        sample_weights[:, 0] += 1
-        sample_weights[:, 1] += 1000
+# =============================================================================
+#         sample_weights = np.zeros((self.patch_size*self.patch_size,self.n_classes))
+#         sample_weights[:, 0] += 1
+#         sample_weights[:, 1] += 1000
+# =============================================================================
         
-        return X,y ,sample_weights
+        return X,y #,sample_weights
     
     def __data_generation(self, list_idx_temp):
         'Generates data containing batch_size samples'
