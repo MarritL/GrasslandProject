@@ -247,4 +247,13 @@ def weighted_categorical_crossentropy(weights):
         else:
             raise ValueError('WeightedCategoricalCrossentropy: not valid with logits')
     return loss    
+
+def dice_loss(y_true, y_pred):
+    """
+    source: https://lars76.github.io/neural-networks/object-detection/losses-for-segmentation/
     
+    """
+    numerator = 2 * tf.reduce_sum(y_true * y_pred, axis=-1)
+    denominator = tf.reduce_sum(y_true + y_pred, axis=-1)
+
+    return 1 - (numerator + 1) / (denominator + 1)
