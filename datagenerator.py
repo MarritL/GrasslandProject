@@ -69,8 +69,12 @@ class DataGen(keras.utils.Sequence):
             y = np.zeros((self.batch_size, self.patch_size, self.patch_size, 2), dtype=np.int8)
             for i in range(self.batch_size):
                 gt_classes = np.argmax(y_full[i,], axis=2)
-                edges = find_boundaries(gt_classes, mode='inner')
-                y[i,] = to_categorical_classes(edges, [0,1])
+                y[i,] = find_boundaries(gt_classes, mode='inner')
+
+# =============================================================================
+#                 edges = find_boundaries(gt_classes, mode='inner')
+#                 y[i,] = to_categorical_classes(edges, [0,1])
+# =============================================================================
         
         ######### TEST ############
         #y = y.reshape(self.patch_size*self.patch_size,self.n_classes)
