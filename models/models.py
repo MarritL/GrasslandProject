@@ -47,128 +47,85 @@ def UNet(input_shape, n_classes, dropout_rate=0.5,weight_decay=0., batch_momentu
     p1 = MaxPooling2D((2, 2)) (c1)
     c1 = Dropout(dropout_rate) (c1)
     
-    c2 = Conv2D(32, (3, 3), dilation_rate=(2,2),kernel_initializer='he_normal', padding='same') (p1)
+    c2 = Conv2D(32, (3, 3), kernel_initializer='he_normal', padding='same') (p1)
     c2 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c2)
     c2 = Activation('relu')(c2)
-    c2 = Conv2D(32, (3, 3),dilation_rate=(2,2), kernel_initializer='he_normal', padding='same') (c2)
+    c2 = Conv2D(32, (3, 3), kernel_initializer='he_normal', padding='same') (c2)
     c2 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c2)
     c2 = Activation('relu')(c2)
-# =============================================================================
-#     c2 = Conv2D(32, (3, 3), kernel_initializer='he_normal', padding='same') (c2)
-#     c2 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c2)
-#     c2 = Activation('relu')(c2)
-# =============================================================================
     p2 = MaxPooling2D((2, 2)) (c2)
     c2 = Dropout(dropout_rate) (c2)
     
-    c3 = Conv2D(64, (3, 3),dilation_rate=(2,2), kernel_initializer='he_normal', padding='same') (p2)
+    c3 = Conv2D(64, (3, 3), kernel_initializer='he_normal', padding='same') (p2)
     c3 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c3)
     c3 = Activation('relu')(c3)
-    c3 = Conv2D(64, (3, 3), dilation_rate=(2,2),kernel_initializer='he_normal', padding='same') (c3)
+    c3 = Conv2D(64, (3, 3), kernel_initializer='he_normal', padding='same') (c3)
     c3 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c3)
     c3 = Activation('relu')(c3)
-# =============================================================================
-#     c3 = Conv2D(64, (3, 3), kernel_initializer='he_normal', padding='same') (c3)
-#     c3 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c3)
-#     c3 = Activation('relu')(c3)
-# =============================================================================
     p3 = MaxPooling2D((2, 2)) (c3)
     c3 = Dropout(dropout_rate) (c3)
     
-    c4 = Conv2D(128, (3, 3), dilation_rate=(2,2),kernel_initializer='he_normal', padding='same') (p3)
+    c4 = Conv2D(128, (3, 3), kernel_initializer='he_normal', padding='same') (p3)
     c4 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c4)
     c4 = Activation('relu')(c4)
-    c4 = Conv2D(128, (3, 3),dilation_rate=(2,2), kernel_initializer='he_normal', padding='same') (c4)
+    c4 = Conv2D(128, (3, 3), kernel_initializer='he_normal', padding='same') (c4)
     c4 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c4)
     c4 = Activation('relu')(c4)
-# =============================================================================
-#     c4 = Conv2D(128, (3, 3), kernel_initializer='he_normal', padding='same') (c4)
-#     c4 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c4)
-#     c4 = Activation('relu')(c4)
-# =============================================================================
     p4 = MaxPooling2D(pool_size=(2, 2)) (c4)
     c4 = Dropout(dropout_rate) (c4)
     
-    c5 = Conv2D(256, (3, 3), dilation_rate=(2,2),kernel_initializer='he_normal', padding='same') (p4)
+    c5 = Conv2D(256, (3, 3), kernel_initializer='he_normal', padding='same') (p4)
     c5 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c5)
     c5 = Activation('relu')(c5)
-    c5 = Conv2D(256, (3, 3), dilation_rate=(2,2),kernel_initializer='he_normal', padding='same') (c5)
+    c5 = Conv2D(256, (3, 3), kernel_initializer='he_normal', padding='same') (c5)
     c5 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c5)
     c5 = Activation('relu')(c5)
-# =============================================================================
-#     c5 = Conv2D(256, (3, 3), kernel_initializer='he_normal', padding='same') (c5)
-#     c5 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c5)
-#     c5 = Activation('relu')(c5)
-# =============================================================================
+
     c5 = Dropout(dropout_rate) (c5)
     
     u6 = Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same') (c5)
     u6 = concatenate([u6, c4])
-    c6 = Conv2D(128, (3, 3), dilation_rate=(2,2), kernel_initializer='he_normal', padding='same') (u6)
+    c6 = Conv2D(128, (3, 3), kernel_initializer='he_normal', padding='same') (u6)
     c6 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c6)
     c6 = Activation('relu')(c6)
-    c6 = Conv2D(128, (3, 3), dilation_rate=(2,2),kernel_initializer='he_normal', padding='same') (c6)
+    c6 = Conv2D(128, (3, 3), kernel_initializer='he_normal', padding='same') (c6)
     c6 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c6)
     c6 = Activation('relu')(c6)
-# =============================================================================
-#     c6 = Conv2D(128, (3, 3), kernel_initializer='he_normal', padding='same') (c6)
-#     c6 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c6)
-#     c6 = Activation('relu')(c6)
-# =============================================================================
     c6 = Dropout(dropout_rate) (c6)
     
     u7 = Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same') (c6)
     u7 = concatenate([u7, c3])
-    c7 = Conv2D(64, (3, 3), dilation_rate=(2,2),kernel_initializer='he_normal', padding='same') (u7)
+    c7 = Conv2D(64, (3, 3), kernel_initializer='he_normal', padding='same') (u7)
     c7 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c7)
     c7 = Activation('relu')(c7)
-    c7 = Conv2D(64, (3, 3), dilation_rate=(2,2), kernel_initializer='he_normal', padding='same') (c7)
+    c7 = Conv2D(64, (3, 3), kernel_initializer='he_normal', padding='same') (c7)
     c7 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c7)
     c7 = Activation('relu')(c7)
-# =============================================================================
-#     c7 = Conv2D(64, (3, 3), kernel_initializer='he_normal', padding='same') (c7)
-#     c7 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c7)
-#     c7 = Activation('relu')(c7)
-# =============================================================================
     c7 = Dropout(dropout_rate) (c7)
     
     u8 = Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same') (c7)
     u8 = concatenate([u8, c2])
-    c8 = Conv2D(32, (3, 3), dilation_rate=(2,2),kernel_initializer='he_normal', padding='same') (u8)
+    c8 = Conv2D(32, (3, 3), kernel_initializer='he_normal', padding='same') (u8)
     c8 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c8)
     c8 = Activation('relu')(c8)
-    c8 = Conv2D(32, (3, 3), dilation_rate=(2,2),kernel_initializer='he_normal', padding='same') (c8)
+    c8 = Conv2D(32, (3, 3), kernel_initializer='he_normal', padding='same') (c8)
     c8 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c8)
     c8 = Activation('relu')(c8)
-# =============================================================================
-#     c8 = Conv2D(32, (3, 3), kernel_initializer='he_normal', padding='same') (c8)
-#     c8 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c8)
-#     c8 = Activation('relu')(c8)
-# =============================================================================
     c8 = Dropout(dropout_rate) (c8)
     
     u9 = Conv2DTranspose(16, (2, 2), strides=(2, 2), padding='same') (c8)
     u9 = concatenate([u9, c1], axis=3)
-    c9 = Conv2D(16, (3, 3), dilation_rate=(2,2),kernel_initializer='he_normal', padding='same') (u9)
+    c9 = Conv2D(16, (3, 3), kernel_initializer='he_normal', padding='same') (u9)
     c9 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c9)
     c9 = Activation('relu')(c9)
-    c9 = Conv2D(16, (3, 3), dilation_rate=(2,2),kernel_initializer='he_normal', padding='same') (c9)
+    c9 = Conv2D(16, (3, 3), kernel_initializer='he_normal', padding='same') (c9)
     c9 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c9)
     c9 = Activation('relu')(c9)
-# =============================================================================
-#     c9 = Conv2D(16, (3, 3), kernel_initializer='he_normal', padding='same') (c9)
-#     c9 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c9)
-#     c9 = Activation('relu')(c9)
-# =============================================================================
     c9 = Dropout(dropout_rate) (c9)
     
     outputs = Conv2D(n_classes, (1, 1), activation='softmax') (c9)
     
-    
-    ######## TEST ###########
-    #outputs = Reshape((input_shape[0]*input_shape[1], n_classes))(outputs)
-    
-    model = Model(inputs=[inputs], outputs=[outputs,outputs*10])
+    model = Model(inputs=[inputs], outputs=[outputs])
     return(model)
     
 # =============================================================================
