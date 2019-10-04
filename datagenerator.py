@@ -10,6 +10,7 @@ import numpy as np
 import tensorflow.keras as keras
 from dataset import to_categorical_classes
 from scipy import ndimage
+from skimage.segmentation import find_boundaries
 
 class DataGen(keras.utils.Sequence):
     'Generates data for Keras'   
@@ -45,13 +46,17 @@ class DataGen(keras.utils.Sequence):
 
         # Generate data
         X, y = self.__data_generation(list_idx_temp)
-        if self.pretrained_resnet50:
-            X = self.__preprocess_imagenet(X)
+        
+# =============================================================================
+#         # different preprocessing
+#         if self.pretrained_resnet50:
+#             X = self.__preprocess_imagenet(X)
+# =============================================================================
             
         # group tara classes in one single class
         if self.n_classes == 3:
             y_full = y
-            y = np.zeros((self.batch_size, self.max_size, self.max_size, 3), dtype=np.int8)
+            y = np.zeros((self.batch_size, self.patch_size, self.patch_size, 3), dtype=np.int8)
             for i in range(self.batch_size):
                 gt_classes = np.argmax(y_full[i,], axis=2)
                 gt_classes[gt_classes == 1] = 0
@@ -61,11 +66,10 @@ class DataGen(keras.utils.Sequence):
         # edge detection instead of classes
         if self.n_classes == 2:
             y_full = y
-            y = np.zeros((self.batch_size, self.max_size, self.max_size, 2), dtype=np.int8)
+            y = np.zeros((self.batch_size, self.patch_size, self.patch_size, 2), dtype=np.int8)
             for i in range(self.batch_size):
                 gt_classes = np.argmax(y_full[i,], axis=2)
-                edges = ndimage.sobel(gt_classes)
-                edges[edges !=0] = 1
+                edges = find_boundaries(gt_classes, mode='inner')
                 y[i,] = to_categorical_classes(edges, [0,1])
         
         ######### TEST ############
