@@ -17,6 +17,7 @@ class GrasslandDataset(Dataset):
         self.data_path = data_path
         self.indices= indices
         
+        
     def __len__(self):
         'Denotes the total number of samples'
         return len(self.indices)
@@ -28,7 +29,7 @@ class GrasslandDataset(Dataset):
     
         # Load data and get label
         #X = torch.load('data/' + ID + '.pt')
-        x = torch.from_numpy(self.data_path + 'images/' + str(index) + '.npy')
-        y = torch.from_numpy(self.data_path + 'labels/' + str(index) + '.npy')
+        x = torch.from_numpy(np.load(self.data_path + 'images/' + str(index) + '.npy'))
+        y = torch.from_numpy(np.load(self.data_path + 'labels/' + str(index) + '.npy'))
     
         return x, y
