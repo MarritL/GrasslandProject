@@ -5,7 +5,7 @@ Created on Mon Oct  7 11:26:34 2019
 
 @author: cordolo
 """
-
+import numpy as np
 import torch
 from torch.utils.data import Dataset
 
