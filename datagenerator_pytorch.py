@@ -24,11 +24,11 @@ class GrasslandDataset(Dataset):
     def __getitem__(self, index):
         'Generates one sample of data'
         # Select sample
-        ID = self.indices[index]
+        #ID = self.indices[index]
     
         # Load data and get label
         #X = torch.load('data/' + ID + '.pt')
-        x = torch.from_numpy(self.data_path + 'images/' + ID + '.npy')
-        y = torch.from_numpy(self.data_path + 'labels/' + ID + '.npy')
+        x = torch.from_numpy(self.data_path + 'images/' + str(index) + '.npy')
+        y = torch.from_numpy(self.data_path + 'labels/' + str(index) + '.npy')
     
         return x, y
