@@ -31,7 +31,7 @@ class GrasslandDataset(Dataset):
     
         # Load data and get label
         #X = torch.load('data/' + ID + '.pt')
-        patch = np.load(self.data_path + 'images/' + str(ID) + '.npy')
+        patch = np.load(self.data_path + 'images/' + str(ID) + '.npy').astype(np.float32)
         
         if self.n_channels < 5:
             patch = patch[:,:,self.channels]
@@ -39,4 +39,7 @@ class GrasslandDataset(Dataset):
         x = torch.from_numpy(patch).permute(2,0,1)
         y = torch.from_numpy(np.load(self.data_path + 'labels/' + str(ID) + '.npy'))
     
-        return x, y
+        output = dict()
+        output['img_data'] = x
+        output['seg_label'] = y
+        return output
