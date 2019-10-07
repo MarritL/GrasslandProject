@@ -36,7 +36,7 @@ class GrasslandDataset(Dataset):
         if self.n_channels < 5:
             patch = patch[:,:,self.channels]
                 
-        x = torch.from_numpy(patch.permute(2,0,1))
+        x = torch.from_numpy(patch).permute(2,0,1)
         y = torch.from_numpy(np.load(self.data_path + 'labels/' + str(ID) + '.npy'))
     
         return x, y
