@@ -29,7 +29,7 @@ class GrasslandDataset(Dataset):
     
         # Load data and get label
         #X = torch.load('data/' + ID + '.pt')
-        x = torch.from_numpy(np.load(self.data_path + 'images/' + str(index) + '.npy'))
-        y = torch.from_numpy(np.load(self.data_path + 'labels/' + str(index) + '.npy'))
+        x = torch.from_numpy(np.load(self.data_path + 'images/' + str(ID) + '.npy')).permute(2,0,1)
+        y = torch.from_numpy(np.load(self.data_path + 'labels/' + str(ID) + '.npy'))
     
         return x, y
