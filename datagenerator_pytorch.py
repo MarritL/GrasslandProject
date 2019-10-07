@@ -12,10 +12,12 @@ from torch.utils.data import Dataset
 
 class GrasslandDataset(Dataset):
     
-    def __init__(self, data_path, indices):
+    def __init__(self, data_path, indices, channels):
         'Initialization'
         self.data_path = data_path
         self.indices= indices
+        self.channels = channels
+        self.n_channels = len(channels)
         
         
     def __len__(self):
@@ -29,7 +31,12 @@ class GrasslandDataset(Dataset):
     
         # Load data and get label
         #X = torch.load('data/' + ID + '.pt')
-        x = torch.from_numpy(np.load(self.data_path + 'images/' + str(ID) + '.npy')).permute(2,0,1)
+        patch = np.load(self.data_path + 'images/' + str(ID) + '.npy')
+        
+        if self.n_channels < 5:
+            patch = patch[:,:,self.channels]
+                
+        x = torch.from_numpy(patch.permute(2,0,1))
         y = torch.from_numpy(np.load(self.data_path + 'labels/' + str(ID) + '.npy'))
     
         return x, y
