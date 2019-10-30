@@ -340,6 +340,65 @@ def plot_confusion_matrix(cm, class_names, normalize = True, title=None, cmap=pl
     fig.tight_layout()
     return ax
 
+def plot_confusion_matrix2(cm, class_names, normalize = True, title=None, cmap=plt.cm.Blues):
+    """
+    This function prints and plots the confusion matrix for images with one-hot encoded labels.
+    Normalization can be applied by setting `normalize=True`.
+    
+    arguments
+    ---------
+        cm: numpy.ndarray
+            confusion matrix
+        class_names: list
+            class labels for confusion matrix
+        normalize: boolean
+            default=True
+        title: string
+            default = None
+        cmap: matplotlib color map
+            default = plt.cm.Blues
+    
+    returns
+    -------
+        plot of confusion table
+    """
+    if not title:
+        title = 'Confusion matrix'
+    
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+
+        fig, ax = plt.subplots(figsize=(6, 6))
+        im = ax.imshow(cm, interpolation='nearest', cmap=cmap, vmin=0, vmax=1)
+        ax.figure.colorbar(im, ax=ax)
+    else:    
+        fig, ax = plt.subplots(figsize=(6, 6))
+        im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
+        ax.figure.colorbar(im, ax=ax)
+        
+    # We want to show all ticks...
+    ax.set(xticks=np.arange(cm.shape[1]),
+           yticks=np.arange(cm.shape[0]),
+           # ... and label them with the respective list entries
+           xticklabels=class_names, yticklabels=class_names,
+           title=title,
+           ylabel='True label',
+           xlabel='Predicted label')
+
+    # Rotate the tick labels and set their alignment.
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+             rotation_mode="anchor")
+    
+    # Loop over data dimensions and create text annotations.
+    fmt = '.2f' if normalize else 'd'
+    thresh = cm.max() / 2.
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            ax.text(j, i, format(cm[i, j], fmt),
+                    ha="center", va="center",
+                    color="white" if cm[i, j] > thresh else "black")
+    fig.tight_layout()
+    return ax
 
 def plot_history(network_history):
     plt.figure()
@@ -382,11 +441,11 @@ def umap_plot(pixel_values, labels, n_neighbors=15, min_dist=0.2, metric='euclid
     umap_gt_sq = labels
     
     #plot
-    colors = ['red','green','blue','purple','yellow']
+    colors = ['red','green','blue','purple','yellow','black']
     colors_map = umap_gt_sq[:,]
     #tare = [770,659,654,690,650]
     #for i, cl in enumerate(tare):
-    for cl in range(5):
+    for cl in range(6):
         indices = np.where(colors_map==cl)
         plt.scatter(embedding[indices,0], embedding[indices, 1], c=colors[cl], label=[cl])
     plt.legend()
@@ -566,7 +625,7 @@ def plot_tile(inputpath, tile):
     ax.imshow(gt, cmap=cmap, vmin=0, vmax=5)
     
     plt.show()
-    
+
     
 # =============================================================================
 # plot_tile(inputpath, '025164w')
