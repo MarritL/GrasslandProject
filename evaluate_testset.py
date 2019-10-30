@@ -17,7 +17,7 @@ from plots import plot_confusion_matrix2
 import os
 
 
-def test(classes, index_test, data_path, patch_size, patch_size_padded, max_size, channels, resolution, model_path, results_path, visualize=False, class_names):
+def test(classes, index_test, data_path, patch_size, patch_size_padded, max_size, channels, resolution, model_path, results_path, class_names, visualize=False):
     acc_meter = AverageMeter()
     intersection_meter = AverageMeter()
     union_meter = AverageMeter()
