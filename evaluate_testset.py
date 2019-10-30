@@ -88,7 +88,7 @@ def test(classes, index_test, data_path, patch_size, patch_size_padded, max_size
 
         # visualization
         if visualize:
-            np.save(os.path.join(results_path, str(idx)+'.npy'))
+            np.save(os.path.join(results_path, str(idx)+'.npy'), pred)
 
         pbar.update(1)
  

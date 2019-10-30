@@ -318,7 +318,7 @@ if not os.path.isdir(results_path):
 index_test = load_test_indices(tiles_test_file, coordspath + coordsfilename)
 print('#samples: {}'.format(len(index_test)))
 
-test(classes, index_test, data_path, patch_size, patch_size_padded, 
+test(classes, index_test, patchespath, patch_size, patch_size_padded, 
      max_size, channels, resolution, model_path, results_path, class_names, visualize=True)
 
 
