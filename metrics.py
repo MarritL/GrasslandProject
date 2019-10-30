@@ -257,3 +257,102 @@ def dice_loss(y_true, y_pred):
     denominator = tf.reduce_sum(y_true + y_pred, axis=-1)
 
     return 1 - (numerator + 1) / (denominator + 1)
+
+def accuracy(preds, label):
+    valid = (label >= 0)
+    acc_sum = (valid * (preds == label)).sum()
+    valid_sum = valid.sum()
+    acc = float(acc_sum) / (valid_sum + 1e-10)
+    return acc, valid_sum
+
+class AverageMeter(object):
+    """Computes and stores the average and current value"""
+    def __init__(self):
+        self.initialized = False
+        self.val = None
+        self.avg = None
+        self.sum = None
+        self.count = None
+
+    def initialize(self, val, weight):
+        self.val = val
+        self.avg = val
+        self.sum = val * weight
+        self.count = weight
+        self.initialized = True
+
+    def update(self, val, weight=1):
+        if not self.initialized:
+            self.initialize(val, weight)
+        else:
+            self.add(val, weight)
+
+    def add(self, val, weight):
+        self.val = val
+        self.sum += val * weight
+        self.count += weight
+        self.avg = self.sum / self.count
+
+    def value(self):
+        return self.val
+
+    def average(self):
+        return self.avg
+    
+def intersectionAndUnion(imPred, imLab, numClass):
+    imPred = np.asarray(imPred).copy()
+    imLab = np.asarray(imLab).copy()
+
+    imPred += 1
+    imLab += 1
+
+    # Remove classes from unlabeled pixels in gt image.
+    # We should not penalize detections in unlabeled portions of the image.
+    imPred = imPred * (imLab > 0)
+
+    # Compute area intersection:
+    intersection = imPred * (imPred == imLab)
+    (area_intersection, _) = np.histogram(
+        intersection, bins=numClass, range=(1, numClass))
+
+    # Compute area union:
+    (area_pred, _) = np.histogram(imPred, bins=numClass, range=(1, numClass))
+    (area_lab, _) = np.histogram(imLab, bins=numClass, range=(1, numClass))
+    area_union = area_pred + area_lab - area_intersection
+
+    return (area_intersection, area_union)
+
+def updateConfusionMatrix(confMatrix, preds, label):
+    
+    n_classes= confMatrix.shape[0]
+
+    for cl in range(n_classes):
+        pix = np.argwhere(label == cl)
+        hist, edges = np.histogram(preds[pix], bins=n_classes, range=(0,n_classes-1))
+        for cl_pred in range(n_classes):
+            confMatrix[cl,cl_pred] += hist[cl_pred]
+    
+    return confMatrix   
+
+def compute_mcc(conf_matrix):
+    """ compute multi-class mcc using equation from source:
+        https://scikit-learn.org/stable/modules/model_evaluation.html#matthews-corrcoef
+        
+    arguments
+    ---------
+        conf_matrix: numpy.ndarray
+            confusion matrix. true in rows, predicted in columns
+            
+    return
+    ------
+        mcc: float
+            matthews correlation coefficient
+    
+    """
+    correct = np.trace(conf_matrix)
+    tot = np.sum(conf_matrix)
+    cl_true = np.sum(conf_matrix,axis = 1)
+    cl_pred = np.sum(conf_matrix, axis = 0)
+
+    mcc = (correct*tot-np.sum(cl_true*cl_pred))/(np.sqrt((tot**2-np.sum(cl_pred**2))*(tot**2-np.sum(cl_true**2))))
+    return mcc
