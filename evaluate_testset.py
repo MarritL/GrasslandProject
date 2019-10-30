@@ -15,6 +15,7 @@ from models.BilinearUpSampling import BilinearUpSampling2D
 from tqdm import tqdm
 from plots import plot_confusion_matrix2
 import os
+import matplotlib.pyplot as plt
 
 
 def test(classes, index_test, data_path, patch_size, patch_size_padded, max_size, channels, resolution, model_path, results_path, class_names, visualize=False):
