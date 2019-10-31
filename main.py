@@ -11,7 +11,7 @@ patch_size=32
 patch_size_padded = patch_size*3
 classes = [638,659,654,650,770]
 class_names = ["tara0", "tara20", "tara50", "woods","no coltivable"]
-channels = [0,1,2,3,4] 
+channels = [0,1,2,3] 
 n_channels = len(channels)
 n_classes = 5
 resolution = 1 #1 for 1m; 20 for 20cm
@@ -306,7 +306,7 @@ from dataset import load_test_indices
 from evaluate_testset import test
 
 # load model
-model_file = 'UNet_01102019_11:24:03_res:1_epoch:.36_valloss:.0.9114.hdf5'
+model_file = 'UNet_01102019_17:30:35_res:1_epoch:.60_valloss:.0.7414.hdf5'
 model_path = model_savepath + model_file
 results_path = results_dir + model_file +'/'
 batch_size=1

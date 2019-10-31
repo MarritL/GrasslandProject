@@ -134,13 +134,6 @@ def test(classes, index_test, data_path, patch_size, patch_size_padded, max_size
     print('Patch: Mean IoU: {:.4f}, Accuracy: {:.2f}%, Inference Time: {:.4f}s'
           .format(iou_patch.mean(), acc_meter_patch.average()*100, time_meter.average()))
     
-    print('Confusion matrix:')
-    plot_confusion_matrix2(conf_matrix, class_names, 
-                          normalize = True, title='confusion matrix patch+padding',
-                          cmap=plt.cm.Blues)
-    plot_confusion_matrix2(conf_matrix_patch, class_names, 
-                          normalize = True, title='confusion matrix patch',
-                          cmap=plt.cm.Blues)
     
     np.save(os.path.join(results_path,'confmatrix.npy'), conf_matrix)
     np.save(os.path.join(results_path,'confmatrix_patch.npy'), conf_matrix_patch)
@@ -151,6 +144,14 @@ def test(classes, index_test, data_path, patch_size, patch_size_padded, max_size
     
     mcc = compute_mcc(conf_matrix)
     mcc_patch = compute_mcc(conf_matrix_patch)
+    print("MCC: {}, MCC patch: {}".format(mcc, mcc_patch))
+    print('Confusion matrix:')
+    plot_confusion_matrix2(conf_matrix, class_names, 
+                          normalize = True, title='confusion matrix patch+padding',
+                          cmap=plt.cm.Blues)
+    plot_confusion_matrix2(conf_matrix_patch, class_names, 
+                          normalize = True, title='confusion matrix patch',
+                          cmap=plt.cm.Blues)
     # save summary of results in csv
     summary = pd.DataFrame([[model_path.split('_')[0].split('/')[-1],resolution, 
                              patch_size, channels, acc_meter.average(),
