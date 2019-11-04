@@ -421,9 +421,10 @@ def train_val_split(tiles_cv_file, coordsfile, folds, k):
      
     """
     coords_df = pd.read_csv(coordsfile, sep=',')
-    coords_df = coords_df['tiles']
+    coords_df = coords_df[['tiles','Unnamed: 0']]
     
     tiles = np.load(tiles_cv_file, allow_pickle=True)
+    
     tiles_per_fold = int(len(tiles)/folds)
     
     # train / val split  
@@ -431,11 +432,14 @@ def train_val_split(tiles_cv_file, coordsfile, folds, k):
     traintiles = tiles[np.isin(tiles, valtiles) == False]
     
     # find indices
-    coords_val = coords_df[np.isin(coords_df, valtiles)]
-    coords_train = coords_df[np.isin(coords_df, traintiles)]
+    coords_val = coords_df[np.isin(coords_df['tiles'], valtiles)]
+    coords_train = coords_df[np.isin(coords_df['tiles'], traintiles)]
     
-    index_val = np.array(coords_val.index)
-    index_train = np.array(coords_train.index)
+    index_val = np.array(coords_val['Unnamed: 0'])
+    index_train = np.array(coords_train['Unnamed: 0'])
+    
+    random.shuffle(index_val)
+    random.shuffle(index_train)
     
     return(index_train,index_val)
 
@@ -460,16 +464,16 @@ def train_val_split_random(tiles_cv_file, coordsfile, n_val_patches):
      
     """
     coords_df = pd.read_csv(coordsfile, sep=',')
-    coords_df = coords_df['tiles']
+    coords_df = coords_df[['tiles','Unnamed: 0']]
     
     tiles = np.load(tiles_cv_file, allow_pickle=True)
     
     # remove indices used for testing
-    coords_trainval = coords_df[np.isin(coords_df, tiles)]
+    coords_trainval = coords_df[np.isin(coords_df['tiles'], tiles)]
     
-    index_val = np.random.choice(coords_trainval.index, n_val_patches, replace=False)
-    index_train = coords_trainval[np.isin(coords_trainval.index, index_val) == False]
-    index_train = np.array(index_train.index)
+    index_val = np.random.choice(coords_trainval['Unnamed: 0'], n_val_patches, replace=False)
+    index_train = coords_trainval[np.isin(coords_trainval['Unnamed: 0'], index_val) == False]
+    index_train = np.array(index_train['Unnamed: 0'])
     
     random.shuffle(index_train)
     random.shuffle(index_val)

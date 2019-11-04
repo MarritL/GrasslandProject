@@ -11,7 +11,7 @@ patch_size=32
 patch_size_padded = patch_size*3
 classes = [638,659,654,650,770]
 class_names = ["tara0", "tara20", "tara50", "woods","no coltivable"]
-channels = [0,1,2,3] 
+channels = [0,1,2,3,4] 
 n_channels = len(channels)
 n_classes = 5
 resolution = 1 #1 for 1m; 20 for 20cm
@@ -28,7 +28,7 @@ if compute == "optimus":
     coordspath='/data3/marrit/GrasslandProject/input/files/'
     #coordsfilename_old= 'patches.csv'
     #coordsfilename_grid = 'patches_grid.csv'
-    coordsfilename = 'patches_grid.csv'
+    coordsfilename = 'patches_grid_clean.csv'
     patchespath = '/marrit1/GrasslandProject/PatchesNew/'
     tiles_cv_file = '/data3/marrit/GrasslandProject/input/files/folders_cv_grid.npy'
     tiles_test_file = '/data3/marrit/GrasslandProject/input/files/folders_test_grid.npy'
@@ -153,7 +153,7 @@ epsilon=1e-8
 model = models.all_models[modelname](image_size, n_classes, **args)
 #model = multi_gpu_model(model, gpus=2)
 optimizer = optimizers.Adam(lr, epsilon)
-model.compile(optimizer=optimizer ,loss='binary_crossentropy', 
+model.compile(optimizer=optimizer ,loss='categorical_crossentropy', 
               metrics=[metrics.categorical_accuracy])
 # =============================================================================
 # model.compile(optimizer=optimizer, loss = weighted_categorical_crossentropy(sample_weights),
@@ -172,14 +172,14 @@ from plots import plot_history
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 import h5py
 
-output_model_path = model_savepath + modelname + \
-    'subset_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + \
-    '_res:' + str(resolution) +"_epoch:.{epoch:02d}"+"_valloss:.{val_loss:.4f}.hdf5"
-
 # init
 folds = 7
 kth_fold = 0
 max_tiles = 500
+
+output_model_path = model_savepath + modelname + \
+    'subset_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + \
+    '_res:' + str(resolution) +"_fold:"+str(kth_fold)+"_epoch:.{epoch:02d}"+"_valloss:.{val_loss:.4f}.hdf5"
 
 # training setup
 batch_size = 128
@@ -225,7 +225,7 @@ import h5py
 
 output_model_path = model_savepath + modelname + \
     '_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + \
-    '_res:' + str(resolution) +"_epoch:.{epoch:02d}"+"_valloss:.{val_loss:.4f}.hdf5"
+    '_res:' + str(resolution) +"_fold:" + str(kth_fold) + "_channels:"+ str(channels)+ "_epoch:.{epoch:02d}"+"_valloss:.{val_loss:.4f}.hdf5"
 
 # init
 folds = 5 
@@ -235,7 +235,7 @@ kth_fold = 0
 batch_size = 128
 epochs=200
 checkpoint = ModelCheckpoint(output_model_path, monitor='val_loss', save_best_only=True, mode='min')
-stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=8, mode='min')
+stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=15, mode='min')
 tensorboard = TensorBoard(log_dir = log_dir+modelname+'_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())))
 pretrained_resnet50 = False
 if modelname in ("Pretrained_ResNet", "Pretrained_VGG16_T", "pretrained_VGG16"):
@@ -262,7 +262,7 @@ val_generator = DataGen(data_path = patchespath, n_patches = n_patches_val,
 
 # run
 result = model.fit_generator(generator=train_generator, validation_data=val_generator, 
-                epochs=epochs,callbacks=[checkpoint,tensorboard]) #, stop]) 
+                epochs=epochs,callbacks=[checkpoint,tensorboard, stop]) 
 
 # plot training history
 plot_history(result)
@@ -307,6 +307,7 @@ from evaluate_testset import test
 
 # load model
 model_file = 'UNet_01102019_17:30:35_res:1_epoch:.60_valloss:.0.7414.hdf5'
+#model_file = 'UNet_01102019_14:15:42_res:1_epoch:.49_valloss:.0.9333.hdf5'
 model_path = model_savepath + model_file
 results_path = results_dir + model_file +'/'
 batch_size=1
@@ -540,3 +541,93 @@ input_result = np.argmax(gt[5], axis=2)
 result = ndimage.sobel(input_result)
 result[result !=0] = 1
 plt.imshow(result)
+
+#%% 
+"""
+Train models in a for loop
+"""
+
+"""
+Initialize model
+"""
+# libs for initializing
+from models import models
+from tensorflow.keras import metrics
+from tensorflow.keras import optimizers
+# libs for training
+from time import localtime, strftime
+from matplotlib import pyplot as plt
+from dataset import train_val_split, train_test_split_random, train_val_split_random
+from datagenerator import DataGen
+from plots import plot_history
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
+import h5py
+
+for channels in [[0,1,2],[0,1,2,3],[0,1,2,4],[0,1,2,3,4]]: 
+    n_channels=len(channels)
+    # init 
+    image_size = (patch_size_padded, patch_size_padded, n_channels)
+    
+    # model parameters
+    modelname ="UNet"
+    args = {
+      'dropout_rate': 0.,
+      'weight_decay':0., 
+      'batch_momentum':0.9
+    }
+    lr= 1e-4
+    epsilon=1e-8
+    
+    # init model
+    model = models.all_models[modelname](image_size, n_classes, **args)
+    optimizer = optimizers.Adam(lr, epsilon)
+    model.compile(optimizer=optimizer ,loss='categorical_crossentropy', 
+                  metrics=[metrics.categorical_accuracy])
+    
+
+    # train different folds
+    for kth_fold in [0,1,2,3,4]:
+    
+        output_model_path = model_savepath + modelname + \
+            '_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + \
+            '_res:' + str(resolution) +"_fold:" + str(kth_fold) + "_channels:"+ str(channels)+ "_epoch:.{epoch:02d}"+"_valloss:.{val_loss:.4f}.hdf5"
+        print(output_model_path)
+        
+        # init
+        folds = 5 
+        
+        # training setup
+        batch_size = 128
+        epochs=200
+        checkpoint = ModelCheckpoint(output_model_path, monitor='val_loss', save_best_only=True, mode='min')
+        stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=15, mode='min')
+        tensorboard = TensorBoard(log_dir = log_dir+modelname+'_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())))
+        pretrained_resnet50 = False
+        if modelname in ("Pretrained_ResNet", "Pretrained_VGG16_T", "pretrained_VGG16"):
+            pretrained_resnet50 = True
+        
+        # load train and validation set
+        index_train, index_val = train_val_split(tiles_cv_file, coordspath + coordsfilename, folds, kth_fold)
+        #index_train, index_val, index_test = train_test_split_random(coordspath + coordsfilename)
+        #index_train, index_val = train_val_split_random(tiles_cv_file, coordspath + coordsfilename, 15000)
+        
+         
+        n_patches_train = len(index_train)
+        n_patches_val = len(index_val)
+        
+        # init datagenerator
+        train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, 
+                        shuffle=True, augment=True, indices=index_train , 
+                        batch_size=batch_size, patch_size=patch_size_padded, 
+                        n_classes=n_classes, channels=channels, max_size=max_size,pretrained_resnet50=pretrained_resnet50)
+        val_generator = DataGen(data_path = patchespath, n_patches = n_patches_val, 
+                        shuffle=True, augment=False, indices=index_val , 
+                        batch_size=batch_size, patch_size=patch_size_padded, 
+                        n_classes=n_classes, channels=channels, max_size=max_size,pretrained_resnet50=pretrained_resnet50)
+        
+        # run
+        result = model.fit_generator(generator=train_generator, validation_data=val_generator, 
+                        epochs=epochs,callbacks=[checkpoint,tensorboard, stop]) 
+        
+        # plot training history
+        plot_history(result)
