@@ -16,9 +16,14 @@ import umap
 from sklearn.decomposition import PCA
 from osgeo import gdal
 import matplotlib.patches as patches
+import seaborn as sns
+import os
+
 
 # colormap
-colors = ['linen', 'lightgreen', 'limegreen', 'darkgreen', 'yellow']
+#colors = ['linen', 'lightgreen', 'limegreen', 'darkgreen', 'yellow']
+colors = np.array([(194/256,230/256,153/256),(120/256,198/256,121/256),
+    (49/256,163/256,84/256),(0/256,76/256,38/256),(229/256,224/256,204/256)])
 cmap = ListedColormap(colors)
 
 def plot_random_patches(patches_path, n_patches, classes, class_names):
@@ -171,7 +176,7 @@ def plot_patches(patch, gt, n_patches):
         # plot gt 
         grtr = ax[1,i].imshow(plt_gt, cmap=cmap, vmin=0, vmax=4)
     
-    ep.draw_legend(grtr,titles=["tara0", "tara20", "tara50", "woods","no coltivable"],classes=[0, 1, 2, 3,4])
+    ep.draw_legend(grtr,titles=["tara0", "tara20", "tara50", "forest","non-cultivable"],classes=[0, 1, 2, 3,4])
 
 def plot_predicted_probabilities(predictions, groundtruth, n_classes, uncertainty):
     """ plot predictions with ground truth
@@ -196,7 +201,9 @@ def plot_predicted_probabilities(predictions, groundtruth, n_classes, uncertaint
         The columns represent differnet patches.
     """
 
-    colors_extra = ['linen', 'lightgreen', 'limegreen', 'darkgreen', 'yellow', 'black']
+    #colors_extra = ['linen', 'lightgreen', 'limegreen', 'darkgreen', 'yellow', 'black']
+    colors_extra = np.array([(194/256,230/256,153/256),(120/256,198/256,121/256),
+    (49/256,163/256,84/256),(0/256,76/256,38/256),(229/256,224/256,204/256),(0,0,0)])
     cmap_extra = ListedColormap(colors_extra)
     
     n_patches = len(predictions)
@@ -230,7 +237,7 @@ def plot_predicted_probabilities(predictions, groundtruth, n_classes, uncertaint
         # plot gt 
         grtr = ax[6,i].imshow(plt_gt, cmap=cmap, vmin=0, vmax=4) 
     
-    ep.draw_legend(im,titles=["tara0", "tara20", "tara50", "woods","no coltivable","not sure"],classes=[0, 1, 2, 3,4,5])
+    ep.draw_legend(im,titles=["tara0", "tara20", "tara50", "forest","non-cultivable","not sure"],classes=[0, 1, 2, 3,4,5])
     
 def plot_prediction_uncertainty(predictions, groundtruth, n_classes):
     """plot predictions uncertainties
@@ -503,7 +510,10 @@ def plot_patches_on_tile(coordsfile, tiles_path, tile, patch_size_padded):
         plot of tile with the patches outlined
     """
     
-    colors = ['black', 'linen', 'lightgreen', 'green', 'darkgreen', 'yellow']
+    #colors = ['black', 'linen', 'lightgreen', 'green', 'darkgreen', 'yellow']    
+    colors = np.array([(0,0,0),(194/256,230/256,153/256),(120/256,198/256,121/256),
+    (49/256,163/256,84/256),(0/256,76/256,38/256),(229/256,224/256,204/256)])
+    
     cmap = ListedColormap(colors)
     coords_df = pd.read_csv(coordsfile, sep=',')
     is_tile = coords_df['tiles'] == tile
@@ -530,17 +540,20 @@ def plot_patches_on_tile(coordsfile, tiles_path, tile, patch_size_padded):
     fig,ax = plt.subplots(figsize=(10,10))
     
     # plot image
-    ax.imshow(gt, cmap=cmap, vmin=0, vmax=5)
+    im = ax.imshow(gt, cmap=cmap, vmin=0, vmax=5)
+
     
     # Create a square for patch
     for index, row in patches_tile.iterrows(): 
         r = int(row['row'])
         c = int(row['col'])
-        patch = patches.Rectangle((c,r),patch_size_padded,patch_size_padded,linewidth=1,edgecolor='r',facecolor='none')
+        patch = patches.Rectangle((c,r),patch_size_padded,patch_size_padded,linewidth=1.3,edgecolor='r',facecolor='none')
     
         # Add the patch to the Axes
-        ax.add_patch(patch)
+        ax.add_patch(patch)   
     
+    ep.draw_legend(im,titles=["","tara0", "tara20", "tara50", "forest","non-cultivable"],classes=[0,1, 2, 3,4,5])
+    #plt.savefig('/data3/marrit/GrasslandProject/output/images/random_patches_tile_025164w.png')
     plt.show()
 
 def plot_patch_options(gt, starting_points, patch_size_padded):
@@ -626,6 +639,23 @@ def plot_tile(inputpath, tile):
     
     plt.show()
 
+def barplot_classes(tot_per_class, class_names, savepath, filename):
+    
+    df = pd.DataFrame(tot_per_class, columns = ['number of pixels'])
+    df['class']  = class_names
+    sns.set(rc={'figure.figsize':(10,8)})
+    ax = sns.barplot(y="number of pixels", x="class", data=df, palette=colors)
+    
+    total = sum(df['number of pixels'])
+    for p in ax.patches:
+        percentage = '{:.1f}%'.format(100 * p.get_height()/total)
+        x = p.get_x() + 0.12
+        y = p.get_y() + p.get_height() + 0.1
+        ax.annotate(percentage, (x, y))
+    
+    plt.savefig(os.path.join(savepath,filename))
+    
+    plt.show()
     
 # =============================================================================
 # plot_tile(inputpath, '025164w')
