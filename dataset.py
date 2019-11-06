@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from osgeo import gdal
 from utils import list_dir
-from plots import plot_patch_options
+from plots import plot_patch_options, barplot_classes
 
 def tile_to_csv_grid(inputpath, coordspath, coordsfilename, patch_size_padded):
     """ save location of patches in csv-file.
@@ -634,7 +634,9 @@ def get_patches(patchespath, indices, patch_size_padded, channels, resolution):
         
     return X, y
 
-def count_classes(patchespath, coordsfile, class_names, res):
+def count_classes(patchespath, coordsfile, class_names, res, plot=False, 
+                  savepath = '/data3/marrit/GrasslandProject/output/images',
+                  filename = None):
     """ Count the number of pixels of each class and return percentage per class
     
     arguments
@@ -645,6 +647,14 @@ def count_classes(patchespath, coordsfile, class_names, res):
             path to file where the coordinates are saved  
         class_names: list
             list with class names
+        res: int 
+            resolution of the patches to count classes
+        plot: boolean
+            if True plot distribution of classes. Default = False
+        savepath: string
+            location to save plot
+        filename: string
+            filename of plot
             
     returns
     -------
@@ -681,6 +691,9 @@ def count_classes(patchespath, coordsfile, class_names, res):
     tot_per_class = coords_df[[v for v in col_names.values()]].sum(axis=0)
     tot = tot_per_class.sum()   
     percentage = tot_per_class / tot
+    
+    if plot:
+        barplot_classes(tot_per_class, class_names, savepath, filename)
 
     return percentage    
 

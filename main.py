@@ -10,7 +10,7 @@ compute = "optimus"
 patch_size=32
 patch_size_padded = patch_size*3
 classes = [638,659,654,650,770]
-class_names = ["tara0", "tara20", "tara50", "woods","no coltivable"]
+class_names = ["tara0", "tara20", "tara50", "forest","non-cultivable"]
 channels = [0,1,2,3,4] 
 n_channels = len(channels)
 n_classes = 5
@@ -563,30 +563,31 @@ from plots import plot_history
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 import h5py
 
-for channels in [[0,1,2],[0,1,2,3],[0,1,2,4],[0,1,2,3,4]]: 
+for channels in [[0,1,2],[0,1,2,3],[0,1,2,4],[0,1,2,3,4]]:    
+
     n_channels=len(channels)
+        
     # init 
     image_size = (patch_size_padded, patch_size_padded, n_channels)
     
-    # model parameters
-    modelname ="UNet"
-    args = {
-      'dropout_rate': 0.,
-      'weight_decay':0., 
-      'batch_momentum':0.9
-    }
-    lr= 1e-4
-    epsilon=1e-8
-    
-    # init model
-    model = models.all_models[modelname](image_size, n_classes, **args)
-    optimizer = optimizers.Adam(lr, epsilon)
-    model.compile(optimizer=optimizer ,loss='categorical_crossentropy', 
-                  metrics=[metrics.categorical_accuracy])
-    
-
     # train different folds
-    for kth_fold in [0,1,2,3,4]:
+    for kth_fold in [1,2,3,4]:
+        
+        # model parameters
+        modelname ="UNet"
+        args = {
+          'dropout_rate': 0.,
+          'weight_decay':0., 
+          'batch_momentum':0.9
+        }
+        lr= 1e-4
+        epsilon=1e-8
+        
+        # init model
+        model = models.all_models[modelname](image_size, n_classes, **args)
+        optimizer = optimizers.Adam(lr, epsilon)
+        model.compile(optimizer=optimizer ,loss='categorical_crossentropy', 
+                      metrics=[metrics.categorical_accuracy])
     
         output_model_path = model_savepath + modelname + \
             '_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + \
@@ -597,7 +598,7 @@ for channels in [[0,1,2],[0,1,2,3],[0,1,2,4],[0,1,2,3,4]]:
         folds = 5 
         
         # training setup
-        batch_size = 128
+        batch_size = 64
         epochs=200
         checkpoint = ModelCheckpoint(output_model_path, monitor='val_loss', save_best_only=True, mode='min')
         stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=15, mode='min')
