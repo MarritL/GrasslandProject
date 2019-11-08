@@ -44,7 +44,7 @@ def UNet(input_shape, n_classes, dropout_rate=0.5,weight_decay=0., batch_momentu
     c1 = Conv2D(16, (3, 3), kernel_initializer='he_normal', padding='same') (c1)
     c1 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c1)
     c1 = Activation('relu')(c1)
-    p1 = MaxPooling2D((2, 2)) (c1)
+    p1 = MaxPooling2D((3, 3)) (c1) #LET OP changed for testing
     #c1 = Dropout(dropout_rate) (c1)
     
     c2 = Conv2D(32, (3, 3), kernel_initializer='he_normal', padding='same') (p1)
@@ -53,7 +53,7 @@ def UNet(input_shape, n_classes, dropout_rate=0.5,weight_decay=0., batch_momentu
     c2 = Conv2D(32, (3, 3), kernel_initializer='he_normal', padding='same') (c2)
     c2 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c2)
     c2 = Activation('relu')(c2)
-    p2 = MaxPooling2D((2, 2)) (c2)
+    p2 = MaxPooling2D((3, 3)) (c2)
     #c2 = Dropout(dropout_rate) (c2)
     
     c3 = Conv2D(64, (3, 3), kernel_initializer='he_normal', padding='same') (p2)
@@ -62,7 +62,7 @@ def UNet(input_shape, n_classes, dropout_rate=0.5,weight_decay=0., batch_momentu
     c3 = Conv2D(64, (3, 3), kernel_initializer='he_normal', padding='same') (c3)
     c3 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c3)
     c3 = Activation('relu')(c3)
-    p3 = MaxPooling2D((2, 2)) (c3)
+    p3 = MaxPooling2D((3, 3)) (c3)
     #c3 = Dropout(dropout_rate) (c3)
     
     c4 = Conv2D(128, (3, 3), kernel_initializer='he_normal', padding='same') (p3)
@@ -71,7 +71,7 @@ def UNet(input_shape, n_classes, dropout_rate=0.5,weight_decay=0., batch_momentu
     c4 = Conv2D(128, (3, 3), kernel_initializer='he_normal', padding='same') (c4)
     c4 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c4)
     c4 = Activation('relu')(c4)
-    p4 = MaxPooling2D(pool_size=(2, 2)) (c4)
+    p4 = MaxPooling2D(pool_size=(3, 3)) (c4)
     #c4 = Dropout(dropout_rate) (c4)
     
     c5 = Conv2D(256, (3, 3), kernel_initializer='he_normal', padding='same') (p4)
@@ -83,7 +83,7 @@ def UNet(input_shape, n_classes, dropout_rate=0.5,weight_decay=0., batch_momentu
 
     #c5 = Dropout(dropout_rate) (c5)
     
-    u6 = Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same') (c5)
+    u6 = Conv2DTranspose(128, (3, 3), strides=(3, 3), padding='same') (c5)
     u6 = concatenate([u6, c4])
     c6 = Conv2D(128, (3, 3), kernel_initializer='he_normal', padding='same') (u6)
     c6 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c6)
@@ -93,7 +93,7 @@ def UNet(input_shape, n_classes, dropout_rate=0.5,weight_decay=0., batch_momentu
     c6 = Activation('relu')(c6)
     c6 = Dropout(dropout_rate) (c6)
     
-    u7 = Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same') (c6)
+    u7 = Conv2DTranspose(64, (3, 3), strides=(3, 3), padding='same') (c6)
     u7 = concatenate([u7, c3])
     c7 = Conv2D(64, (3, 3), kernel_initializer='he_normal', padding='same') (u7)
     c7 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c7)
@@ -103,7 +103,7 @@ def UNet(input_shape, n_classes, dropout_rate=0.5,weight_decay=0., batch_momentu
     c7 = Activation('relu')(c7)
     #c7 = Dropout(dropout_rate) (c7)
     
-    u8 = Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same') (c7)
+    u8 = Conv2DTranspose(32, (3, 3), strides=(3, 3), padding='same') (c7)
     u8 = concatenate([u8, c2])
     c8 = Conv2D(32, (3, 3), kernel_initializer='he_normal', padding='same') (u8)
     c8 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c8)
@@ -113,7 +113,7 @@ def UNet(input_shape, n_classes, dropout_rate=0.5,weight_decay=0., batch_momentu
     c8 = Activation('relu')(c8)
     #c8 = Dropout(dropout_rate) (c8)
     
-    u9 = Conv2DTranspose(16, (2, 2), strides=(2, 2), padding='same') (c8)
+    u9 = Conv2DTranspose(16, (3, 3), strides=(3, 3), padding='same') (c8)
     u9 = concatenate([u9, c1], axis=3)
     c9 = Conv2D(16, (3, 3), kernel_initializer='he_normal', padding='same') (u9)
     c9 = BatchNormalization(axis=bn_axis, momentum=batch_momentum)(c9)

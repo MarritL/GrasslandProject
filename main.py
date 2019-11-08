@@ -11,7 +11,7 @@ patch_size=32
 patch_size_padded = patch_size*3
 classes = [638,659,654,650,770]
 class_names = ["tara0", "tara20", "tara50", "forest","non-cultivable"]
-channels = [0,1,2,3,4] 
+channels = [0,1,2] 
 n_channels = len(channels)
 n_classes = 5
 resolution = 1 #1 for 1m; 20 for 20cm
@@ -302,12 +302,19 @@ Test the model with own loop as in pytorch
 """
 
 import os
-from dataset import load_test_indices
+from dataset import load_test_indices, train_val_split
 from evaluate_testset import test
 
+# use gpu 1
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID";
+os.environ["CUDA_VISIBLE_DEVICES"]="1"; 
+
+folds = 5
+kth_fold = 4
+model_file = 'UNet_06112019_18:37:39_res:1_fold:full_channels:[0, 1, 2]_epoch:.120.hdf5'
+channels = [0,1,2,3,4] 
+
 # load model
-model_file = 'UNet_01102019_17:30:35_res:1_epoch:.60_valloss:.0.7414.hdf5'
-#model_file = 'UNet_01102019_14:15:42_res:1_epoch:.49_valloss:.0.9333.hdf5'
 model_path = model_savepath + model_file
 results_path = results_dir + model_file +'/'
 batch_size=1
@@ -316,11 +323,13 @@ batch_size=1
 if not os.path.isdir(results_path):
     os.makedirs(results_path)
 
+# get indices
 index_test = load_test_indices(tiles_test_file, coordspath + coordsfilename)
+#index_train, index_test = train_val_split(tiles_cv_file, coordspath + coordsfilename, folds, kth_fold) # test is validation set  
 print('#samples: {}'.format(len(index_test)))
 
 test(classes, index_test, patchespath, patch_size, patch_size_padded, 
-     max_size, channels, resolution, model_path, results_path, class_names, visualize=True)
+     max_size, channels, resolution, model_path, results_path, class_names, visualize=False)
 
 
 
@@ -632,3 +641,89 @@ for channels in [[0,1,2],[0,1,2,3],[0,1,2,4],[0,1,2,3,4]]:
         
         # plot training history
         plot_history(result)
+
+#%% 
+"""
+Train models on full trainingset (train+val) in a for loop
+"""
+# libs for initializing
+from models import models
+from tensorflow.keras import metrics
+from tensorflow.keras import optimizers
+# libs for training
+from time import localtime, strftime
+from matplotlib import pyplot as plt
+from dataset import train_val_split, train_val_split_random
+from datagenerator import DataGen
+from plots import plot_history
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
+import h5py
+import os
+
+# use gpu 1
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID";
+os.environ["CUDA_VISIBLE_DEVICES"]="1"; 
+
+for channels in [[0,1,2,3,4]]:
+
+    n_channels=len(channels)
+        
+    # init 
+    image_size = (patch_size_padded, patch_size_padded, n_channels)
+    
+        
+    # model parameters
+    modelname ="UNet"
+    args = {
+      'dropout_rate': 0.,
+      'weight_decay':0., 
+      'batch_momentum':0.9
+    }
+    lr= 1e-4
+    epsilon=1e-8
+    
+    # init model
+    model = models.all_models[modelname](image_size, n_classes, **args)
+    optimizer = optimizers.Adam(lr, epsilon)
+    model.compile(optimizer=optimizer ,loss='categorical_crossentropy', 
+                  metrics=[metrics.categorical_accuracy])
+
+    output_model_path = model_savepath + modelname + \
+        '_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + \
+        '_res:' + str(resolution) +"_fold:full" + "_channels:"+ str(channels)+ "_epoch:.{epoch:02d}.hdf5"
+    print(output_model_path)
+    
+    # init
+    folds = 1
+    kth_fold = 0
+    
+    # training setup
+    batch_size = 64
+    epochs=200
+    checkpoint = ModelCheckpoint(output_model_path,period=2)
+    tensorboard = TensorBoard(log_dir = log_dir+modelname+'_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())))
+    pretrained_resnet50 = False
+    if modelname in ("Pretrained_ResNet", "Pretrained_VGG16_T", "pretrained_VGG16"):
+        pretrained_resnet50 = True
+    
+    # load train and validation set
+    index_train, index_val = train_val_split(tiles_cv_file, coordspath + coordsfilename, folds, kth_fold)
+    #index_train, index_val, index_test = train_test_split_random(coordspath + coordsfilename)
+    #index_train, index_val = train_val_split_random(tiles_cv_file, coordspath + coordsfilename, 15000)
+    index_train = index_val    
+     
+    n_patches_train = len(index_train)
+    
+    # init datagenerator
+    train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, 
+                    shuffle=True, augment=True, indices=index_train , 
+                    batch_size=batch_size, patch_size=patch_size_padded, 
+                    n_classes=n_classes, channels=channels, max_size=max_size,pretrained_resnet50=pretrained_resnet50)
+    
+    # run
+    result = model.fit_generator(generator=train_generator, 
+                    epochs=epochs,callbacks=[checkpoint,tensorboard]) 
+    
+    # plot training history
+    plot_history(result)
+
