@@ -39,7 +39,7 @@ def test(classes, index_test, data_path, patch_size, patch_size_padded, max_size
     #j = 0
     
     # initiate model
-    model = load_model(model_path, custom_objects={'BilinearUpSampling2D':BilinearUpSampling2D})
+    model = load_model(model_path) #, custom_objects={'BilinearUpSampling2D':BilinearUpSampling2D})
     #extra_output = [layer.output for layer in model.layers[-3::2]]
     #visualization_model = Model(i)
     
