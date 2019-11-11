@@ -571,16 +571,16 @@ def load_test_indices(tiles_test_file, coordsfile):
     ------
         index_test: numpy ndarray
             indices of test patches in coordsfile     
-    """
+    """    
     coords_df = pd.read_csv(coordsfile, sep=',')
-    coords_df = coords_df['tiles']
+    coords_df = coords_df[['tiles','Unnamed: 0']]
     
     testtiles = np.load(tiles_test_file, allow_pickle=True)
     
     # find indices
-    coords_test = coords_df[np.isin(coords_df, testtiles)]
+    coords_test = coords_df[np.isin(coords_df['tiles'], testtiles)]
     
-    index_test = np.array(coords_test.index)
+    index_test = np.array(coords_test['Unnamed: 0'])
     
     return(index_test)
     
