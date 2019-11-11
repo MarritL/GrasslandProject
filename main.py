@@ -7,7 +7,7 @@ Created on Tue Sep  3 14:29:59 2019
 """
 
 compute = "optimus"
-patch_size=32
+patch_size=160
 patch_size_padded = patch_size*3
 classes = [638,659,654,650,770]
 class_names = ["tara0", "tara20", "tara50", "forest","non-cultivable"]
@@ -16,7 +16,7 @@ n_channels = len(channels)
 n_classes = 5
 resolution = 1 #1 for 1m; 20 for 20cm
 if resolution == 1:
-    max_size = 96
+    max_size = 480
 elif resolution == 20:
     max_size = 480
 
@@ -107,10 +107,10 @@ train_test_split(coordspath + coordsfilename, tiles_cv_file, tiles_test_file, n_
 Check some of the generated patches
 """
 from dataset import get_patches
-from plots import plot_patches, plot_patches_on_tile, plot_random_patches
+from plots import plot_patches, plot_patches_on_tile, plot_random_patches, plot_tile
 import numpy as np
 
-patches, gt = get_patches(patchespath, [100,107,200,300,400,500], patch_size_padded, [0,1,2,3,4], resolution)
+patches, gt = get_patches(patchespath, [32076, 39997, 33016,36201,38575,35781,37944], patch_size_padded, [0,1,2,3,4], resolution)
 
 plot_patches(patches, gt, 6)
 
@@ -122,6 +122,10 @@ tiles = np.random.choice(cv_tiles,10,False)
 for i in range(5):
     tile = tiles[i]
     plot_patches_on_tile(coordspath+coordsfilename, inputpath, tile, patch_size_padded)
+    
+# plot random tile from test
+tile = np.random.choice(tiles_test, size=1)
+plot_tile(inputpath, '061032w')
     
 #%% Initialize
 """
@@ -311,8 +315,8 @@ os.environ["CUDA_VISIBLE_DEVICES"]="1";
 
 folds = 5
 kth_fold = 4
-model_file = 'UNet_06112019_18:37:39_res:1_fold:full_channels:[0, 1, 2]_epoch:.120.hdf5'
-channels = [0,1,2,3,4] 
+model_file = 'UNet_06112019_18:37:39_res:1_fold:full_channels:[0, 1, 2]__epoch:.80.hdf5'
+channels = [0,1,2] 
 
 # load model
 model_path = model_savepath + model_file
@@ -329,7 +333,7 @@ index_test = load_test_indices(tiles_test_file, coordspath + coordsfilename)
 print('#samples: {}'.format(len(index_test)))
 
 test(classes, index_test, patchespath, patch_size, patch_size_padded, 
-     max_size, channels, resolution, model_path, results_path, class_names, visualize=False)
+     max_size, channels, resolution, model_path, results_path, class_names, visualize=True)
 
 
 
@@ -572,7 +576,7 @@ from plots import plot_history
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 import h5py
 
-for channels in [[0,1,2],[0,1,2,3],[0,1,2,4],[0,1,2,3,4]]:    
+for channels in [[0,1,2]]:    
 
     n_channels=len(channels)
         
@@ -580,7 +584,7 @@ for channels in [[0,1,2],[0,1,2,3],[0,1,2,4],[0,1,2,3,4]]:
     image_size = (patch_size_padded, patch_size_padded, n_channels)
     
     # train different folds
-    for kth_fold in [1,2,3,4]:
+    for kth_fold in [0,1,2,3,4]:
         
         # model parameters
         modelname ="UNet"
@@ -727,3 +731,59 @@ for channels in [[0,1,2,3,4]]:
     # plot training history
     plot_history(result)
 
+#%%
+"""
+plot predicted patch with ground truth
+"""
+from plots import plot_predicted_patches
+
+predictions_folder = '/data3/marrit/GrasslandProject/output/results/UNet_06112019_18:37:39_res:1_fold:full_channels:[0, 1, 2]__epoch:.80.hdf5'
+
+coordsfile = coordspath+coordsfilename
+coords_df = pd.read_csv(coordsfile)
+tiles_test = np.load(tiles_test_file, allow_pickle=True)
+index_predict = np.random.choice(coords_df.loc[coords_df['tiles'].isin(tiles_test)]['Unnamed: 0'],10, replace=False)
+patch, groundtruth = get_patches(patchespath, index_predict, patch_size_padded, [0,1,2], resolution)
+
+predictions = np.zeros((len(index_predict), patch_size_padded, patch_size_padded), dtype=np.int)
+for i,idx in enumerate(index_predict):
+    predictions[i] = np.load(os.path.join(predictions_folder, str(idx)+'.npy'))
+
+
+n_patches = len(predictions)
+cols = 2
+if np.any(patch != None):
+    cols = 3
+
+
+# prepare
+fig, ax = plt.subplots(n_patches,cols, figsize=(10,10))
+
+for i in range(n_patches):
+
+    im = predictions[i]
+    gt = groundtruth[i]
+    
+    # prepare prediction plot
+    plt_im  = im
+    
+    # prepare gt plot
+    plt_gt  = np.zeros_like(gt, dtype=np.uint8)
+    plt_gt = np.argmax(gt, axis=2)
+
+    # plot training image
+    ax[i,0].imshow(plt_im, cmap=cmap, vmin=0, vmax=4)
+    
+    # plot gt 
+    grtr = ax[i,1].imshow(plt_gt, cmap=cmap, vmin=0, vmax=4) 
+    
+    # plot RGB
+    if np.any(patch != None):
+        plt_im = patch[i][:, :, [0,1,2]].astype(np.float64)
+        ax[i,2].imshow(plt_im)
+
+ep.draw_legend(grtr,titles=["tara0", "tara20", "tara50", "woods","no coltivable"],classes=[0, 1, 2, 3,4])
+
+
+
+plot_predicted_patches(predictions, gt_patches, patches)

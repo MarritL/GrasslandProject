@@ -101,13 +101,13 @@ def plot_predicted_patches(predictions, groundtruth, patch=None):
     """
 
     n_patches = len(predictions)
-    rows = 2
+    cols = 2
     if np.any(patch != None):
-        rows = 3
+        cols = 3
     
     
     # prepare
-    fig, ax = plt.subplots(rows,n_patches, figsize=(15,15))
+    fig, ax = plt.subplots(n_patches,cols, figsize=(15,15))
     
     for i in range(n_patches):
     
@@ -123,15 +123,15 @@ def plot_predicted_patches(predictions, groundtruth, patch=None):
         plt_gt = np.argmax(gt, axis=2)
     
         # plot training image
-        ax[0,i].imshow(plt_im, cmap=cmap, vmin=0, vmax=4)
+        ax[i,0].imshow(plt_im, cmap=cmap, vmin=0, vmax=4)
         
         # plot gt 
-        grtr = ax[1,i].imshow(plt_gt, cmap=cmap, vmin=0, vmax=4) 
+        grtr = ax[i,1].imshow(plt_gt, cmap=cmap, vmin=0, vmax=4) 
         
         # plot RGB
         if np.any(patch != None):
             plt_im = patch[i][:, :, [0,1,2]].astype(np.float64)
-            ax[2,i].imshow(plt_im)
+            ax[i,2].imshow(plt_im)
     
     ep.draw_legend(grtr,titles=["tara0", "tara20", "tara50", "woods","no coltivable"],classes=[0, 1, 2, 3,4])
      
@@ -526,6 +526,26 @@ def plot_patches_on_tile(coordsfile, tiles_path, tile, patch_size_padded):
     gt = np.uint16(gt)
     ds = None
     
+# =============================================================================
+#     # get rgb tile
+#     path_rgb = tiles_path + tile + '/' + tile + '_RGB.tif'
+#     ds = gdal.Open(path_rgb,gdal.GA_ReadOnly)
+#     img = np.zeros([ds.RasterYSize,ds.RasterXSize,ds.RasterCount],dtype=np.int)
+#     for x in range(1, ds.RasterCount + 1):
+#         band = ds.GetRasterBand(x)
+#         img[:,:,x-1] = band.ReadAsArray()
+#     ds = None
+#     
+#     # get nir tile
+#     path_rgb = tiles_path + tile + '/' + tile + '_RGB.tif'
+#     ds = gdal.Open(path_rgb,gdal.GA_ReadOnly)
+#     im_NIR = ds.GetRasterBand(1).ReadAsArray() 
+#     ds = None
+# 
+#     imRGBN = np.dstack([img,im_NIR])
+# =============================================================================
+    
+    
     # set classes for plotting
     gt[gt==638] = 1
     gt[gt==659] = 2
@@ -533,13 +553,19 @@ def plot_patches_on_tile(coordsfile, tiles_path, tile, patch_size_padded):
     gt[gt==650] = 4
     gt[gt==770] = 5
     
-    # prepare RGB plot
-    #plt_im = im_RGB[:, :, [0,1,2]].astype(np.float64)
+# =============================================================================
+#     # prepare RGB plot
+#     plt_rgn = imRGBN[:, :, [0,1,3]]
+# =============================================================================
     
     # Create figure and axes
     fig,ax = plt.subplots(figsize=(10,10))
     
     # plot image
+# =============================================================================
+#     im = ax.imshow(plt_rgn)
+#     plt.savefig('/data3/marrit/GrasslandProject/output/images/RGB_tile_061032w.png')
+# =============================================================================
     im = ax.imshow(gt, cmap=cmap, vmin=0, vmax=5)
 
     
@@ -547,13 +573,13 @@ def plot_patches_on_tile(coordsfile, tiles_path, tile, patch_size_padded):
     for index, row in patches_tile.iterrows(): 
         r = int(row['row'])
         c = int(row['col'])
-        patch = patches.Rectangle((c,r),patch_size_padded,patch_size_padded,linewidth=1.3,edgecolor='r',facecolor='none')
+        patch = patches.Rectangle((c,r),patch_size_padded,patch_size_padded,linewidth=1,edgecolor='r',facecolor='none')
     
         # Add the patch to the Axes
         ax.add_patch(patch)   
     
-    ep.draw_legend(im,titles=["","tara0", "tara20", "tara50", "forest","non-cultivable"],classes=[0,1, 2, 3,4,5])
-    #plt.savefig('/data3/marrit/GrasslandProject/output/images/random_patches_tile_025164w.png')
+    #ep.draw_legend(im,titles=["","tara0", "tara20", "tara50", "forest","non-cultivable"],classes=[0,1, 2, 3,4,5])
+    plt.savefig('/data3/marrit/GrasslandProject/output/images/grid_patches_tile_061032w.png')
     plt.show()
 
 def plot_patch_options(gt, starting_points, patch_size_padded):
