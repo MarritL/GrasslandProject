@@ -12,9 +12,9 @@ import numpy as np
 import pandas as pd
 from osgeo import gdal
 from utils import list_dir
-from plots import plot_patch_options, barplot_classes
+from plots import barplot_classes
 
-def tile_to_csv_grid(inputpath, coordspath, coordsfilename, patch_size_padded):
+def tile_to_csv_grid(inputpath, coordspath, coordsfilename, patch_size_padded, classes=[638,659,654,650,770],tile=None, fraction=1,final=False):
     """ save location of patches in csv-file.
     
     Locations of top-left corner-pixel of patches are saved in csv. These corner
@@ -31,21 +31,31 @@ def tile_to_csv_grid(inputpath, coordspath, coordsfilename, patch_size_padded):
         patch_size_padded: int
             size of patch to extract including padding to be able to predict 
             full image.
+        classes: list
+            classes to be considered in the ground truth
+        tile: string (optional)
+            name of folder where tile is stored
+        fraction: float (optional)
+            float between 0 and 1, fraction of pixels that must be in 'classes'
     
     calls
     -----
         find_patches_options()
+        plot_patch_options()
     
     output
     -------
         outputfile: csv
-            each row contains row + column of top-left pixel of patch and tilename: 
-            row,column,tile
+            each row contains row + column of top-left pixel of patch,tilename and number of rows/cols in original tile: 
+            row,column,tile,tile-rows, tile-cols
             saved at coordspath with name coordsfilename
     """
     
     # init
-    dirs = list_dir(inputpath) 
+    if tile != None:
+        dirs = [tile]
+    else:
+        dirs = list_dir(inputpath) 
     
     if not os.path.isdir(coordspath):
         os.makedirs(coordspath)  
@@ -59,22 +69,28 @@ def tile_to_csv_grid(inputpath, coordspath, coordsfilename, patch_size_padded):
         gt = np.uint16(gt)
         ds = None
         
+        # take care of classes
+        gt[np.where(gt == 656)] = 650
+        gt[np.where(gt == 780)] = 770
+        gt[np.isin(gt, classes)==False] = 0
+        
         # get options
         if i_lap == 0:
-            options = find_patches_options(gt, patch_size_padded, d)
+            options = find_patches_options(gt, patch_size_padded, d, fraction, final)
         else:
-            options = options.append(find_patches_options(gt, patch_size_padded, d))
+            options = options.append(find_patches_options(gt, patch_size_padded, d, fraction, final))
             
         if i_lap % 50 == 0: 
                 print('\r {}/{}'.format(i_lap, len(dirs)),end='')
     
     # save in csv 
     options['row'] = options['row'].multiply(patch_size_padded)
-    options['col'] = options['col'].multiply(patch_size_padded)
+    options['col'] = options['col'].multiply(patch_size_padded)      
     options.to_csv(coordspath+coordsfilename, index=False)
+    
 
            
-def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classes, resolution):
+def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classes, resolution, tile=None):
     """ extract the patches from the original images, normalize and save.
         Ground truth is converted to one-hot labels. 
     
@@ -95,7 +111,8 @@ def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classe
             list with classes to be predicted
         resolution: int
             either 20 for 20cm or 1 for 1m
-            
+        tile: string
+            name of folder where tile is stored
     Calls
     -----
         read_patch() 
@@ -117,7 +134,10 @@ def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classe
     if not os.path.isdir(labelspath):
         os.makedirs(labelspath)
         
-    dirs = list_dir(inputpath)
+    if tile != None:
+        dirs = [tile]
+    else:
+        dirs = list_dir(inputpath) 
     coords = pd.read_csv(coordsfile, sep=',')
     patch_size_padded = int(patch_size * 3)
     
@@ -146,7 +166,6 @@ def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classe
     
     elif resolution == 1:
         warpedtile = None
-        #for idx, tile in enumerate(coords[0]): 
         for idx, d in enumerate(coords['tiles']):    
             # resample rgb + nir to 1m (keep in memory (no space on disk))
             if not d == warpedtile:
@@ -175,7 +194,7 @@ def csv_to_patch(inputpath, dtmpath, patchespath, coordsfile, patch_size, classe
 
     
 
-def read_patch_1m(inputRGB, inputNIR, inputDTMfile, inputGT, coords_df, patch_size_padded, idx, classes):
+def read_patch_1m(inputRGB, inputNIR, inputDTMfile, inputGT, coords_df, patch_size_padded, idx, classes, resolution):
     """ load patch based on left-top coordinate for 1mx1m resolution 
     
     Parameters
@@ -212,7 +231,7 @@ def read_patch_1m(inputRGB, inputNIR, inputDTMfile, inputGT, coords_df, patch_si
 
     n_features = 5 #R,G,B, NIR, DTM
     
-    r, c, folder = coords_df.iloc[idx]
+    r, c, folder, max_rows, max_cols  = coords_df.iloc[idx]
     r = int(r//5)
     c = int(c//5)
 
@@ -285,7 +304,7 @@ def read_patch(inputpath, dtmpath, coords_df, patch_size_padded, idx, classes):
     
     n_features = 5 #R,G,B, NIR, DTM
     
-    r, c, folder = coords_df.iloc[idx]
+    r, c, folder, max_rows, max_cols  = coords_df.iloc[idx]
     r = int(r)
     c = int(c)
 
@@ -634,6 +653,42 @@ def get_patches(patchespath, indices, patch_size_padded, channels, resolution):
         
     return X, y
 
+def get_predictions(results_path, indices, patch_size, padding=0):
+    """ load patches
+    
+    arguments
+    ---------
+        results_patch: string
+            path to folder containing the predicted patches
+        indices: list
+            indices of patches to load
+        patch_size: int
+            size of patch to extract, excluding padding.
+        padding: int
+            padding to apply to all sides of patch
+            
+    return
+    ------
+        X: numpy.ndarray
+            predictions stored in array of size (n_patches, patch_size, patch_size) 
+    """
+    
+    # Initialization
+    n_patches = len(indices)
+    patch_size_padded = patch_size + 2*padding
+
+    X = np.zeros((n_patches, patch_size_padded, patch_size_padded), dtype=np.uint8) 
+    
+    for i, idx in enumerate(indices):
+        #load patch
+        X[i,] = np.load(results_path + '/' + str(idx) + '.npy')
+        
+    # crop patch 
+    if padding > 0:
+        X = X[:,padding:padding+patch_size, padding:padding+patch_size]
+        
+    return X
+
 def count_classes(patchespath, coordsfile, class_names, res, plot=False, 
                   savepath = '/data3/marrit/GrasslandProject/output/images',
                   filename = None):
@@ -697,7 +752,7 @@ def count_classes(patchespath, coordsfile, class_names, res, plot=False,
 
     return percentage    
 
-def find_patches_options(gt, patch_size_padded, tile):
+def find_patches_options(gt, patch_size_padded, tile, fraction=1, final=False):
     """
     
     arguments
@@ -713,20 +768,56 @@ def find_patches_options(gt, patch_size_padded, tile):
             Dataframe with optional starting points for patches
     """
      
-    # find starting points on grid, should include gt
-    gt_usable = np.argwhere(gt!=0)
+    # find starting points on grid, should include gt, only final should be all
+    if final:
+        gt_usable = np.argwhere(gt!=872957239293)
+    else:
+        gt_usable = np.argwhere(gt!=0)
     df_usable = pd.DataFrame(gt_usable, columns=['row', 'col'])
     df_usable = df_usable.divide(patch_size_padded).astype(int)
 
     pixels_per_patch = patch_size_padded*patch_size_padded
+    pixels_per_patch = fraction * pixels_per_patch
     
     combinations = df_usable.groupby(['row','col']).size().reset_index()
-    combinations_usable = combinations[combinations[0] == pixels_per_patch].copy()
+    combinations_usable = combinations[combinations[0] >= pixels_per_patch].copy()
     combinations_usable['tiles'] = tile
     combinations_usable.drop(0, axis=1, inplace=True)
+    combinations_usable['tile_rows'] = gt.shape[0]
+    combinations_usable['tile_cols'] = gt.shape[1]
 
-    #plot_patch_options(gt, combinations_usable, patch_size_padded)
     
     return combinations_usable
     
 
+def enlarge_patches(coordsfile, padding, patch_size):
+    """ add padding too patches
+    
+    Parameters
+    ----------
+        coordsfile: csv-file
+            path to file where the coordinates are saved
+        patch_size: int
+            size of patch
+        padding: int
+            size of padding in pixels to be added on all sides of patch
+    
+    Output
+    ------
+        startingcoordinates of padded-patches saved in coordsfile (=csv)
+    """
+    patch_size_padded = patch_size + 2*padding
+    
+    coords = pd.read_csv(coordsfile)
+    
+    # enlarge tiles (starting point patch_size earlier) --> padding == patch_size
+    coords['row'] -= padding
+    coords['col'] -= padding
+    
+    # make sure you don't go out of the tile
+    coords = coords[coords['row']>= 0]
+    coords = coords[coords['col']>= 0]  
+    coords = coords[coords['row']+patch_size_padded <= coords['tile_rows']] 
+    coords = coords[coords['col']+patch_size_padded <= coords['tile_cols']] 
+    #save
+    coords.to_csv(coordsfile, index=False)

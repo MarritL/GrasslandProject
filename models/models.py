@@ -127,82 +127,6 @@ def UNet(input_shape, n_classes, dropout_rate=0.5,weight_decay=0., batch_momentu
     
     model = Model(inputs=[inputs], outputs=[outputs])
     return(model)
-    
-# =============================================================================
-# def UNet(input_shape, n_classes, dropout_rate=0.5,weight_decay=0., batch_momentum=0.9):
-#     """ Create a UNet with 4 times downsampling and 4 times upsampling
-#     
-#     source: https://github.com/zhixuhao/unet/blob/master/model.py
-#     
-#     arguments
-#     ---------
-#         dropout_rate: float between 0 and 1. default=0.5
-#             fraction of the input units to drop    
-#         weight_decay: float between 0 and 1
-#             !! NOT USED IN THIS FUNCTION!! l2 weight regularization penalty
-#         batch_momentum: float between 0 and 1
-#             !! NOT USED IN THIS FUNCTION!! momentum in the computation of the exponential average of the 
-#             mean and standard deviation of the data, for feature-wise normalization.
-#             
-#     returns
-#     -------
-#         model: Keras Model
-#     """
-#     inputs = Input(input_shape)
-# 
-#     c1 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (inputs)
-#     c1 = Dropout(dropout_rate) (c1)
-#     c1 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c1)
-#     p1 = MaxPooling2D((2, 2)) (c1)
-#     
-#     c2 = Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (p1)
-#     c2 = Dropout(dropout_rate) (c2)
-#     c2 = Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c2)
-#     p2 = MaxPooling2D((2, 2)) (c2)
-#     
-#     c3 = Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (p2)
-#     c3 = Dropout(dropout_rate) (c3)
-#     c3 = Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c3)
-#     p3 = MaxPooling2D((2, 2)) (c3)
-#     
-#     c4 = Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (p3)
-#     c4 = Dropout(dropout_rate) (c4)
-#     c4 = Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c4)
-#     p4 = MaxPooling2D(pool_size=(2, 2)) (c4)
-#     
-#     c5 = Conv2D(256, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (p4)
-#     c5 = Dropout(dropout_rate) (c5)
-#     c5 = Conv2D(256, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c5)
-#     
-#     u6 = Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same') (c5)
-#     u6 = concatenate([u6, c4])
-#     c6 = Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (u6)
-#     c6 = Dropout(dropout_rate) (c6)
-#     c6 = Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c6)
-#     
-#     u7 = Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same') (c6)
-#     u7 = concatenate([u7, c3])
-#     c7 = Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (u7)
-#     c7 = Dropout(dropout_rate) (c7)
-#     c7 = Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c7)
-#     
-#     u8 = Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same') (c7)
-#     u8 = concatenate([u8, c2])
-#     c8 = Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (u8)
-#     c8 = Dropout(dropout_rate) (c8)
-#     c8 = Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c8)
-#     
-#     u9 = Conv2DTranspose(16, (2, 2), strides=(2, 2), padding='same') (c8)
-#     u9 = concatenate([u9, c1], axis=3)
-#     c9 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (u9)
-#     c9 = Dropout(dropout_rate) (c9)
-#     c9 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c9)
-#     
-#     outputs = Conv2D(n_classes, (1, 1), activation='softmax') (c9)
-#     
-#     model = Model(inputs=[inputs], outputs=[outputs])
-#     return(model)
-# =============================================================================
 
 
 def AtrousFCN_Resnet53_16s(input_shape, n_classes, weight_decay=0., batch_momentum=0.9,dropout_rate=0.5):
@@ -519,51 +443,6 @@ def pretrained_Xception(input_shape, n_classes, weight_decay=0., batch_momentum=
 
     return model
 
-def HRNet(input_shape, n_classes, weight_decay=0., batch_momentum=0.1,dropout_rate=0.5):
-    """ Create a pretrained VGG16 and add upsampling layers for dense prediction
-    
-    source:
-        modified from the following repository: 
-        https://github.com/HRNet/HRNet-Semantic-Segmentation
-    
-    arguments
-    ---------
-        input_shape: tuple
-        
-        n_classes: int
-    
-        weight_decay: float between 0 and 1
-            l2 weight regularization penalty
-        batch_momentum: float between 0 and 1
-            momentum in the computation of the exponential average of the 
-            mean and standard deviation of the data, for feature-wise normalization.
-        dropout_rate: float between 0 and 1. default=0.5
-            !! NOT USED IN THIS FUNCTION!! fraction of the input units to drop 
-        
-    
-    returns
-    -------
-        model: Keras Model
-    """ 
-    
-    inputs = Input(input_shape)
-
-    bn_axis = 3
-
-    stema = Conv2D(64, (3, 3), strides=(2, 2), padding='same', name='stem_a')(inputs)
-    stema = BatchNormalization(axis=bn_axis, name='bn_stema', momentum=batch_momentum)(stema)
-    stema = Activation('relu')(stema)
-    stemb = Conv2D(64, (3, 3), strides=(2, 2), padding='same', name='stem_b')(stema)
-    stemb = BatchNormalization(axis=bn_axis, name='bn_stemb', momentum=batch_momentum)(stemb)
-    stemb = Activation('relu')(stemb)
-    
-    # stage 1
-    stage1a = identity_block(3, [64, 64, 256], stage=1, block='a', weight_decay=weight_decay, batch_momentum=batch_momentum)(stemb)
-    stage1b = identity_block(3, [64, 64, 256], stage=1, block='a', weight_decay=weight_decay, batch_momentum=batch_momentum)(stage1a)
-    stage1c = identity_block(3, [64, 64, 256], stage=1, block='a', weight_decay=weight_decay, batch_momentum=batch_momentum)(stage1b)
-    stage1d = identity_block(3, [64, 64, 256], stage=1, block='a', weight_decay=weight_decay, batch_momentum=batch_momentum)(stage1c)
-
-    # stage 2
     
 def smallNet(input_shape, n_classes, weight_decay=0., batch_momentum=0.1,dropout_rate=0.5):
     """
