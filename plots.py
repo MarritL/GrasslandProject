@@ -708,6 +708,23 @@ def plot_tile(inputpath, tile):
     plt.show()
 
 def barplot_classes(tot_per_class, class_names, savepath, filename):
+    """ plot a barplot of the occurance of the classes in the dataset
+    
+    arguments
+    ---------
+        tot_per_class: array
+            array with classname and number of pixels per class
+        class_names: list
+            list with the class names to use in plot
+        savepath: string
+            location to save the plot
+        filename: string
+            filename of plot to save
+            
+    return
+    ------
+        plot of distribution of classes in dataset, save at specified location
+    """       
     
     df = pd.DataFrame(tot_per_class, columns = ['number of pixels'])
     df['class']  = class_names
@@ -725,61 +742,3 @@ def barplot_classes(tot_per_class, class_names, savepath, filename):
     
     plt.show()
     
-# =============================================================================
-# plot_tile(inputpath, '025164w')
-# 
-# # find starting points on grid, should include gt
-# def get_patches_for_full_images():    
-#     colors = ['black', 'linen', 'lightgreen', 'green', 'darkgreen', 'yellow']
-#     cmap = ListedColormap(colors)
-#     
-#     # load tile
-#     path_shp = inputpath + tile + '/tare.tif'
-#     ds = gdal.Open(path_shp,gdal.GA_ReadOnly)
-#     gt = ds.GetRasterBand(1).ReadAsArray()
-#     gt = np.uint16(gt)
-#     ds = None
-#     
-#     # get classes right
-#     gt[gt==638] = 1
-#     gt[gt==659] = 2
-#     gt[gt==654] = 3  
-#     gt[gt==650] = 4
-#     gt[gt==770] = 5
-#     
-#     # find starting point of patches
-#     gt_usable = np.argwhere(gt!=0)
-#     df_usable = pd.DataFrame(gt_usable, columns=['row', 'col'])
-#     df_usable = df_usable.divide(patch_size).astype(int)
-#     combinations = df_usable.groupby(['row','col']).size().reset_index()
-#     combinations_usable = combinations
-#     combinations_usable['tiles'] = tile
-#     combinations_usable.drop(0, axis=1, inplace=True)
-#     combinations_usable['row'] = combinations_usable['row'].multiply(patch_size)
-#     combinations_usable['col'] = combinations_usable['col'].multiply(patch_size)
-#     
-#     # remove 'halve' patches on edge
-#     combinations_usable = combinations_usable[combinations_usable['row'] < (gt.shape[0]-patch_size_padded)]
-#     combinations_usable = combinations_usable[combinations_usable['col'] < (gt.shape[1]-patch_size_padded)]
-#     
-#     # save in csv-file
-#     combinations_usable.to_csv(coordspath+coordsfilename, index=False)
-# 
-# 
-#     fig,ax = plt.subplots(figsize=(10,10))
-#     
-#     # plot image
-#     ax.imshow(gt, cmap=cmap, vmin=0, vmax=5)
-#     
-#     # Create a square for patch
-#     for index, row in combinations_usable.iterrows(): 
-#         r = row['row']
-#         c = row['col']
-#         patch = patches.Rectangle((c,r),patch_size,patch_size,linewidth=1,edgecolor='r', fill=False)
-#     
-#         # Add the patch to the Axes
-#         ax.add_patch(patch)
-#     
-#     plt.show() 
-# 
-# =============================================================================
