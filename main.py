@@ -101,13 +101,55 @@ csv_to_patch(inputpath, dtmpath, patchespath='/marrit1/GrasslandProject/PatchesN
 # split dataset in train + testset
 train_test_split(coordspath + coordsfilename, tiles_cv_file, tiles_test_file, n_test_tiles=62)
 
+#%% create dataset with larger patches
+"""
+Generate new dataset based on grid but with larger patches (res 1m, patch_size 480)
+"""
+from dataset import csv_to_patch, tile_to_csv_grid, enlarge_patches
+from dataset import train_test_split, count_classes
+from dataset import plot_patches_on_tile
+from plots import plot_random_patches
+
+# init
+patch_size = 160
+patch_size_padded = 480
+coordsfile= '/data3/marrit/GrasslandProject/input/files/patches_large.csv'
+tiles_cv_file= '/data3/marrit/GrasslandProject/input/files/folders_cv_large.npy'
+tiles_test_file= '/data3/marrit/GrasslandProject/input/files/folders_test_large.npy'
+patchespath= '/marrit1/GrasslandProject/PatchesLarge/res_1/'
+
+# get starting location of patches: 
+# without padding, thus use patch_size instead of patch_size_padded
+tile_to_csv_grid(
+        inputpath=inputpath, coordspath=coordsfile.split('patches')[0], 
+        coordsfilename=coordsfile.split('/')[-1], 
+        patch_size_padded=patch_size,  classes=classes)
+
+# add padding to patches (padding == patch_sizes)
+enlarge_patches(coordsfile,patch_size, patch_size)
+
+# check with a plot
+plot_patches_on_tile(coordsfile, inputpath, '081143w', patch_size*3)
+
+# CAUTION: FOR 1M THE PATCH_SIZE AND PATCH_SIZE_PADDED SHOULD BE UPDATED!!!
+patch_size = 32
+patch_size_padded = 96
+csv_to_patch(inputpath, dtmpath=dtmpath, patchespath=patchespath, 
+        coordsfile=coordsfile, patch_size=patch_size, classes=classes, 
+        resolution=resolution)
+
+# check
+plot_random_patches(patchespath, 5, classes, class_names)
+
+# split dataset in train + testset
+train_test_split(coordsfile,tiles_cv_file,tiles_test_file, n_test_tiles=50)
+
 #%%
 """
 Check some of the generated patches
 """
 from plots import plot_patches_on_tile, plot_random_patches
 import numpy as np
-import random
 
 # patches
 plot_random_patches(patchespath, 6, class_names, classes) # full available patch_size (e.g. 480x480 for 20x20cm resolution)
@@ -199,9 +241,10 @@ result = model.fit_generator(generator=train_generator, validation_data=val_gene
 # plot training history
 plot_history(result)
 
+
 #%% Test
 """
-Test the model on independent test set
+Test the keras model on independent test set
 """
 from dataset import load_test_indices
 from datagenerator import DataGen
@@ -230,7 +273,7 @@ print('test loss, test acc:', evaluate)
 
 #%% 
 """ 
-Test the model with loop as in pytorch
+Test keras model with loop as in pytorch
 """
 import os
 from dataset import load_test_indices, train_val_split
@@ -261,6 +304,142 @@ print('#samples: {}'.format(len(index_test)))
 
 test(classes, index_test, patchespath, patch_size, patch_size_padded, 
      max_size, channels, resolution, model_path, results_path, class_names, visualize=True)
+
+#%% Train model pytorch
+"""
+Train Pytorch model.
+"""
+# libs
+import os
+import random
+from time import localtime, strftime
+import torch
+from dataset import train_val_split
+from pytorch.train import train
+
+# libs
+import yaml
+
+# load configuration file
+cfg_file = 'config/grassland-hrnetv2_dataset-grid.yaml'
+with open(cfg_file, 'r') as ymlfile: 
+    cfg = yaml.load(ymlfile)
+    
+# info
+#print("Loaded configuration file {}".format(cfg))
+cfg
+
+# init specific for pytorch
+num_class= 5
+arch_encoder= 'hrnetv2'
+arch_decoder= 'c1'
+fc_dim= 720
+pretrained = False
+batch_size_per_gpu= 64
+num_epoch= 250
+start_epoch= 0
+epoch_iters= 1555
+lr_encoder= 0.0001
+lr_decoder= 0.0001
+weight_decay= 0.0001
+workers= 2
+disp_iter= 200
+seed= 304
+kth_fold= 0
+val_batch_size= 32
+val_epoch_iters= 406
+val_workers= 2
+
+DIR= "/data3/marrit/GrasslandProject/GrasslandProject_pytorch/ckpt/grassland-hrnetv2-c1"
+tb_DIR= "/data3/marrit/GrasslandProject/GrasslandProject_pytorch/tensorboard/grassland-hrnetv2-c1"
+
+# Start from checkpoint
+if start_epoch > 0:
+    cfg['MODEL']['weights_encoder'] = os.path.join(
+        DIR, 'encoder_epoch_{}.pth'.format(start_epoch))
+    cfg['MODEL']['weights_decoder'] = os.path.join(
+        DIR, 'decoder_epoch_{}.pth'.format(start_epoch))
+    assert os.path.exists(cfg['MODEL']['weights_encoder']) and \
+        os.path.exists(cfg['MODEL']['weights_decoder']), "checkpoint does not exitst!"
+
+# gpu ids
+gpus = [0]
+gpus = [int(x) for x in gpus]
+num_gpus = len(gpus)
+batch_size = num_gpus *batch_size_per_gpu
+
+# init
+cfg['TRAIN']['max_iters'] = epoch_iters * num_epoch
+cfg['TRAIN']['running_lr_encoder'] = lr_encoder
+cfg['TRAIN']['running_lr_decoder'] = lr_decoder
+
+random.seed(seed)
+torch.manual_seed(seed)
+
+# get indices for train and validation
+index_train, index_val = train_val_split(tiles_cv_file,coordsfile,  
+        folds, kth_fold)
+
+# Output directory
+outputtime = '_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime()))
+DIR = DIR + outputtime
+test_dir = DIR
+tb_DIR = tb_DIR + "/" + outputtime + "/"
+if not os.path.isdir(DIR):
+    os.makedirs(DIR)
+print("Outputing checkpoints to: {}".format(DIR))
+
+train(cfg, gpus, patchespath, index_train, index_val, patch_size, tb_DIR, 
+          arch_encoder, arch_decoder,fc_dim, channels, num_class, pretrained,
+          batch_size_per_gpu, val_batch_size, workers, val_workers, start_epoch,
+          num_epoch, lr_encoder, lr_decoder, weight_decay, DIR, val_epoch_iters,
+          epoch_iters, disp_iter)
+
+#%% test pytorch model
+"""
+Test pytorch model
+"""
+
+import os
+from dataset import get_test_indices, train_val_split
+from pytorch.evaluate_testset import test
+from plots import visualize_results
+import pandas as pd
+
+gpu = 0
+#kth_fold = 4
+test_dir = "/data3/marrit/GrasslandProject/GrasslandProject_pytorch/ckpt/grassland-hrnetv2-c1_07112019_18:51:56_07112019_18:54:10"
+checkpoint = "epoch_140.pth"
+visualize = True
+pretrained = False
+
+# absolute paths of model weights
+weights_encoder = os.path.join(
+    test_dir, 'encoder_' + checkpoint)
+weights_decoder = os.path.join(
+   test_dir, 'decoder_' + checkpoint)
+assert os.path.exists(weights_encoder) and \
+    os.path.exists(weights_decoder), "checkpoint does not exitst!"
+
+results_dir = os.path.join(test_dir, "result")
+if not os.path.isdir(os.path.join(test_dir, "result")):
+    os.makedirs(os.path.join(test_dir, "result"))
+
+index_test = get_test_indices(tiles_test_file, coordsfile)
+# get indices for test in this case the validation set is used for testing!
+index_train, index_test = train_val_split(
+        tiles_cv_file,  
+        coordsfile,  
+        folds, 
+        kth_fold)
+
+
+test(cfg, gpu, arch_encoder, arch_decoder, fc_dim, channels, weights_encoder, 
+         weights_decoder, num_class, class_names, pretrained, patchespath, patch_size, 
+         patch_size_padded, index_test, visualize, results_dir)
+
+summary = pd.read_csv(os.path.join(test_dir, 'result','summary_results.csv'))
+print(summary.iloc[0])
 
 #%% 
 """
