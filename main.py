@@ -7,34 +7,32 @@ Created on Tue Sep  3 14:29:59 2019
 """
 
 compute = "optimus"
-patch_size=160
+patch_size=32
 patch_size_padded = patch_size*3
 classes = [638,659,654,650,770]
 class_names = ["tara0", "tara20", "tara50", "forest","non-cultivable"]
-channels = [0,1,2] 
+channels = [0,1,2,3,4] # 0:R, 1:G, 2:B, 3:NIR, 4:DEM
 n_channels = len(channels)
 n_classes = 5
 resolution = 1 #1 for 1m; 20 for 20cm
 if resolution == 1:
-    max_size = 480
+    max_size = 96
 elif resolution == 20:
     max_size = 480
 
 
 # set paths according to computer
 if compute == "optimus":
-    inputpath='/marrit2/Data/'
-    dtmpath = 'marrit1/GrasslandProject/DTM/'
-    coordspath='/data3/marrit/GrasslandProject/input/files/'
-    #coordsfilename_old= 'patches.csv'
-    #coordsfilename_grid = 'patches_grid.csv'
+    inputpath='/marrit2/Data/' # path to tiles
+    dtmpath = 'marrit1/GrasslandProject/DTM/' # path to dtm
+    coordspath='/data3/marrit/GrasslandProject/input/files/' # path to coords-file
     coordsfilename = 'patches_grid_clean.csv'
-    patchespath = '/marrit1/GrasslandProject/PatchesNew/'
-    tiles_cv_file = '/data3/marrit/GrasslandProject/input/files/folders_cv_grid.npy'
-    tiles_test_file = '/data3/marrit/GrasslandProject/input/files/folders_test_grid.npy'
-    model_savepath = '/data3/marrit/GrasslandProject/output/models/'
+    patchespath = '/marrit1/GrasslandProject/PatchesNew/' # path to patches
+    tiles_cv_file = '/data3/marrit/GrasslandProject/input/files/folders_cv_grid.npy' # tiles used for cv
+    tiles_test_file = '/data3/marrit/GrasslandProject/input/files/folders_test_grid.npy' # tiles used for test
+    model_savepath = '/data3/marrit/GrasslandProject/output/models/' 
     log_dir = '/data3/marrit/GrasslandProject/output/logs/scalars/'
-    results_dir = '/data3/marrit/GrasslandProject/output/results/'
+    results_dir = '/data3/marrit/GrasslandProject/output/results/' # path to folder to save results of validation/test
 elif compute == "personal":
     inputpath='/media/cordolo/elements/Data/'
     dtmpath = '/home/cordolo/Documents/Studie Marrit/2019-2020/Internship/DTM/'
@@ -87,6 +85,12 @@ tile_to_csv_grid(inputpath, coordspath, coordsfilename, patch_size_padded)
 
 # save patches on disk
 coordsfile = coordspath+coordsfilename
+tile_to_csv_grid(
+        inputpath='/marrit2/Data/', 
+        coordspath='/data3/marrit/GrasslandProject/input/files/',
+        coordsfilename='patches_grid.csv', 
+        patch_size_padded=480,
+        classes=[638,659,654,650,770])
 csv_to_patch(inputpath, dtmpath, patchespath='/marrit1/GrasslandProject/PatchesNew/res_20/', 
         coordsfile='/data3/marrit/GrasslandProject/input/files/patches_grid.csv', 
         patch_size=160, classes=[638,659,654,650,770], resolution=20)
@@ -94,49 +98,77 @@ csv_to_patch(inputpath, dtmpath, patchespath='/marrit1/GrasslandProject/PatchesN
         coordsfile='/data3/marrit/GrasslandProject/input/files/patches_grid.csv', 
         patch_size=32, classes=[638,659,654,650,770], resolution=1)
 
-
-csv_to_patch(inputpath, dtmpath, patchespath='/marrit1/GrasslandProject/PatchesNew/test_res_20/', 
-        coordsfile='/data3/marrit/GrasslandProject/input/files/patches_test_grid.csv', 
-        patch_size=160, classes=[638,659,654,650,770], resolution=20)
-
 # split dataset in train + testset
 train_test_split(coordspath + coordsfilename, tiles_cv_file, tiles_test_file, n_test_tiles=62)
+
+#%% create dataset with larger patches
+"""
+Generate new dataset based on grid but with larger patches (res 1m, patch_size 480)
+"""
+from dataset import csv_to_patch, tile_to_csv_grid, enlarge_patches
+from dataset import train_test_split, count_classes
+from dataset import plot_patches_on_tile
+from plots import plot_random_patches
+
+# init
+patch_size = 160
+patch_size_padded = 480
+coordsfile= '/data3/marrit/GrasslandProject/input/files/patches_large.csv'
+tiles_cv_file= '/data3/marrit/GrasslandProject/input/files/folders_cv_large.npy'
+tiles_test_file= '/data3/marrit/GrasslandProject/input/files/folders_test_large.npy'
+patchespath= '/marrit1/GrasslandProject/PatchesLarge/res_1/'
+
+# get starting location of patches: 
+# without padding, thus use patch_size instead of patch_size_padded
+tile_to_csv_grid(
+        inputpath=inputpath, coordspath=coordsfile.split('patches')[0], 
+        coordsfilename=coordsfile.split('/')[-1], 
+        patch_size_padded=patch_size,  classes=classes)
+
+# add padding to patches (padding == patch_sizes)
+enlarge_patches(coordsfile,patch_size, patch_size)
+
+# check with a plot
+plot_patches_on_tile(coordsfile, inputpath, '081143w', patch_size*3)
+
+# CAUTION: FOR 1M THE PATCH_SIZE AND PATCH_SIZE_PADDED SHOULD BE UPDATED!!!
+patch_size = 32
+patch_size_padded = 96
+csv_to_patch(inputpath, dtmpath=dtmpath, patchespath=patchespath, 
+        coordsfile=coordsfile, patch_size=patch_size, classes=classes, 
+        resolution=resolution)
+
+# check
+plot_random_patches(patchespath, 5, classes, class_names)
+
+# split dataset in train + testset
+train_test_split(coordsfile,tiles_cv_file,tiles_test_file, n_test_tiles=50)
 
 #%%
 """
 Check some of the generated patches
 """
-from dataset import get_patches
-from plots import plot_patches, plot_patches_on_tile, plot_random_patches, plot_tile
+from plots import plot_patches_on_tile, plot_random_patches
 import numpy as np
 
-patches, gt = get_patches(patchespath, [32076, 39997, 33016,36201,38575,35781,37944], patch_size_padded, [0,1,2,3,4], resolution)
-
-plot_patches(patches, gt, 6)
-
+# patches
 plot_random_patches(patchespath, 6, class_names, classes) # full available patch_size (e.g. 480x480 for 20x20cm resolution)
 
+# patches on tiles
 cv_tiles = np.load(tiles_cv_file, allow_pickle=True)
-tiles = np.random.choice(cv_tiles,10,False)
-    
+tiles = np.random.choice(cv_tiles,10,False)  
 for i in range(5):
     tile = tiles[i]
     plot_patches_on_tile(coordspath+coordsfilename, inputpath, tile, patch_size_padded)
-    
-# plot random tile from test
-tile = np.random.choice(tiles_test, size=1)
-plot_tile(inputpath, '061032w')
+
     
 #%% Initialize
 """
-Initialize model
+Initialize model for Keras
 """
 from models import models
 from tensorflow.keras import metrics
 from tensorflow.keras import optimizers
-from metrics import weighted_categorical_crossentropy, dice_loss
-#from keras.utils import multi_gpu_model
-
 
 # init 
 image_size = (patch_size_padded, patch_size_padded, n_channels)
@@ -151,72 +183,15 @@ args = {
 lr= 1e-4
 epsilon=1e-8
 
-
-
 # init model
 model = models.all_models[modelname](image_size, n_classes, **args)
-#model = multi_gpu_model(model, gpus=2)
 optimizer = optimizers.Adam(lr, epsilon)
 model.compile(optimizer=optimizer ,loss='categorical_crossentropy', 
               metrics=[metrics.categorical_accuracy])
-# =============================================================================
-# model.compile(optimizer=optimizer, loss = weighted_categorical_crossentropy(sample_weights),
-#               metrics=[metrics.categorical_accuracy])
-# =============================================================================
-
-#%% Train with subset for model optimization
-""" 
-Train model with a smaller subset in order to optimize the hyperparameters
-"""
-from time import localtime, strftime
-from matplotlib import pyplot as plt
-from dataset import train_val_split_subset
-from datagenerator import DataGen
-from plots import plot_history
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
-import h5py
-
-# init
-folds = 7
-kth_fold = 0
-max_tiles = 500
-
-output_model_path = model_savepath + modelname + \
-    'subset_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + \
-    '_res:' + str(resolution) +"_fold:"+str(kth_fold)+"_epoch:.{epoch:02d}"+"_valloss:.{val_loss:.4f}.hdf5"
-
-# training setup
-batch_size = 128
-epochs=3
-checkpoint = ModelCheckpoint(output_model_path, monitor='val_loss', save_best_only=True, mode='min')
-stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, mode='min')
-tensorboard = TensorBoard(log_dir = log_dir+'scalars/'+'{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())))
-
-# load train and validation set
-index_train, index_val = train_val_split_subset(tiles_cv_file, coordspath + coordsfilename , folds, kth_fold, max_tiles)
-n_patches_train = 11*128#len(index_train)
-n_patches_val = 5*128#len(index_val)
-
-# init datagenerator
-train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, 
-                shuffle=True, augment=True, indices=index_train , 
-                batch_size=batch_size, patch_size=patch_size_padded, 
-                n_classes=n_classes, channels=channels, max_size=max_size)
-val_generator = DataGen(data_path = patchespath, n_patches = n_patches_val, 
-                shuffle=True, augment=False, indices=index_val , 
-                batch_size=batch_size, patch_size=patch_size_padded, 
-                n_classes=n_classes, channels=channels, max_size=max_size)
-
-# run
-result = model.fit_generator(generator=train_generator, validation_data=val_generator, 
-                             epochs=epochs,callbacks=[checkpoint,stop,tensorboard]) 
-
-# plot training history
-plot_history(result)
 
 #%% Train
 """ 
-Train model
+Train model keras
 """
 from time import localtime, strftime
 from matplotlib import pyplot as plt
@@ -224,19 +199,17 @@ from dataset import train_val_split, train_test_split_random, train_val_split_ra
 from datagenerator import DataGen
 from plots import plot_history
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
-#from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 import h5py
-
-output_model_path = model_savepath + modelname + \
-    '_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + \
-    '_res:' + str(resolution) +"_fold:" + str(kth_fold) + "_channels:"+ str(channels)+ "_epoch:.{epoch:02d}"+"_valloss:.{val_loss:.4f}.hdf5"
 
 # init
 folds = 5 
 kth_fold = 0
+output_model_path = model_savepath + modelname + \
+    '_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + \
+    '_res:' + str(resolution) +"_fold:" + str(kth_fold) + "_channels:"+ str(channels)+ "_epoch:.{epoch:02d}"+"_valloss:.{val_loss:.4f}.hdf5"
 
 # training setup
-batch_size = 128
+batch_size = 64
 epochs=200
 checkpoint = ModelCheckpoint(output_model_path, monitor='val_loss', save_best_only=True, mode='min')
 stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=15, mode='min')
@@ -247,9 +220,6 @@ if modelname in ("Pretrained_ResNet", "Pretrained_VGG16_T", "pretrained_VGG16"):
 
 # load train and validation set
 index_train, index_val = train_val_split(tiles_cv_file, coordspath + coordsfilename, folds, kth_fold)
-#index_train, index_val, index_test = train_test_split_random(coordspath + coordsfilename)
-#index_train, index_val = train_val_split_random(tiles_cv_file, coordspath + coordsfilename, 15000)
-
  
 n_patches_train = len(index_train)
 n_patches_val = len(index_val)
@@ -271,9 +241,10 @@ result = model.fit_generator(generator=train_generator, validation_data=val_gene
 # plot training history
 plot_history(result)
 
+
 #%% Test
 """
-Test the model on independent test set
+Test the keras model on independent test set
 """
 from dataset import load_test_indices
 from datagenerator import DataGen
@@ -282,10 +253,13 @@ from models.BilinearUpSampling import BilinearUpSampling2D
 
 # init
 batch_size = 125
-#model_file = 'UNet_01102019_17:30:35_res:1_epoch:.60_valloss:.0.7414.hdf5'
 
-#model_path = model_savepath + model_file
+# load model
+model_file = 'UNet_01102019_17:30:35_res:1_epoch:.60_valloss:.0.7414.hdf5'
+model_path = model_savepath + model_file
+model = load_model(model_path, custom_objects={'BilinearUpSampling2D':BilinearUpSampling2D})
 
+# get indices
 index_test = load_test_indices(tiles_test_file, coordspath + coordsfilename)
 n_patches_test = len(index_test)
 
@@ -294,40 +268,36 @@ test_generator = DataGen(data_path=patchespath, n_patches = n_patches_test, shuf
                 patch_size=patch_size_padded, n_classes=n_classes, channels=channels, max_size=max_size,
                 pretrained_resnet50=False)
 
-
-#model = load_model(model_path, custom_objects={'BilinearUpSampling2D':BilinearUpSampling2D})
-
 evaluate = model.evaluate_generator(generator=test_generator)
 print('test loss, test acc:', evaluate)
 
 #%% 
 """ 
-Test the model with own loop as in pytorch
+Test keras model with loop as in pytorch
 """
-
 import os
 from dataset import load_test_indices, train_val_split
 from evaluate_testset import test
 
 # use gpu 1
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID";
-os.environ["CUDA_VISIBLE_DEVICES"]="1"; 
+os.environ["CUDA_VISIBLE_DEVICES"]="0"; 
 
-folds = 5
-kth_fold = 4
-model_file = 'UNet_06112019_18:37:39_res:1_fold:full_channels:[0, 1, 2]__epoch:.80.hdf5'
+#folds = 5
+#kth_fold = 4
+model_file = 'UNet_06112019_18:37:39_res:1_fold:full_channels:[0, 1, 2]__epoch:.20.hdf5'
 channels = [0,1,2] 
 
 # load model
 model_path = model_savepath + model_file
-results_path = results_dir + model_file +'/'
+results_path = results_dir + model_file +'/061032w/'
 batch_size=1
 
 
 if not os.path.isdir(results_path):
     os.makedirs(results_path)
 
-# get indices
+# get indices 
 index_test = load_test_indices(tiles_test_file, coordspath + coordsfilename)
 #index_train, index_test = train_val_split(tiles_cv_file, coordspath + coordsfilename, folds, kth_fold) # test is validation set  
 print('#samples: {}'.format(len(index_test)))
@@ -335,455 +305,328 @@ print('#samples: {}'.format(len(index_test)))
 test(classes, index_test, patchespath, patch_size, patch_size_padded, 
      max_size, channels, resolution, model_path, results_path, class_names, visualize=True)
 
-
-
-
-
-#%% Predict
+#%% Train model pytorch
 """
-Predict patches
+Train Pytorch model.
 """
-from dataset import load_test_indices, get_patches
-from datagenerator import DataGen
-from tensorflow.keras.models import load_model
-from plots import plot_predicted_patches#, plot_confusion_matrix, plot_predicted_probabilities
-from metrics import compute_confusion_matrix, compute_matthews_corrcoef
-from dataset import to_categorical_classes
-import numpy as np
-
-# init
-batch_size = 25
-model_file = 'UNet_07102019_18:57:29_res:1_epoch:.39_valloss:.0.4390.hdf5'
-model_path = model_savepath + model_file
-
-
-index_test = load_test_indices(tiles_test_file, coordspath + coordsfilename)
-n_patches_test = 1000#len(index_test)
-
-test_generator = DataGen(data_path=patchespath, n_patches = n_patches_test, shuffle=False, 
-                augment=False, indices=index_test , batch_size=batch_size, 
-                patch_size=patch_size_padded, n_classes=n_classes, channels=channels, max_size=max_size,
-                pretrained_resnet50=False)
-
-model = load_model(model_path, custom_objects={'BilinearUpSampling2D':BilinearUpSampling2D})
-
-predictions = model.predict_generator(generator=test_generator)
-patches, gt_patches = get_patches(patchespath, index_test[:1000], patch_size_padded, channels, resolution=resolution)
-
-# binary case: only predict grass/no-grass
-if n_classes == 2:
-    gt_patches_full = gt_patches
-    gt_patches = np.zeros((n_patches_test, patch_size_padded, patch_size_padded, 2), dtype=np.int8)
-    for i in range(n_patches_test):
-                gt_classes = np.argmax(gt_patches_full[i,], axis=2)
-                gt_classes[(gt_classes == 1) | (gt_classes == 2)] = 0
-                gt_classes[(gt_classes == 3) | (gt_classes == 4)] = 1
-                gt_patches[i,] = to_categorical_classes(gt_classes, [0,1])  
-
-# plots
-plot_predicted_patches(predictions[100:200:10], gt_patches[100:200:10], patches[100:200:10])
-mcc = compute_matthews_corrcoef(gt_patches, predictions[:1000])
-mcc
-
-cm = compute_confusion_matrix(gt_patches, predictions[:1000], classes=[0,1,2,3,4], class_names=class_names, user_producer=False, normalize=True, title='Confusion matrix {}'.format(modelname))
-#cm = compute_confusion_matrix(gt_patches, predictions[:1000], classes=[0,1,2,3,4], class_names=class_names, user_producer=False, normalize=False)
-cm
-
-#%% Predict
-"""
-Predict small amount of patches
-"""
-
-from dataset import load_test_indices, get_patches
-from tensorflow.keras.models import load_model
-from plots import plot_predicted_patches, plot_confusion_matrix
-from plots import plot_predicted_probabilities, plot_prediction_uncertainty
-from models.BilinearUpSampling import BilinearUpSampling2D
-import numpy as np
-from metrics import compute_confusion_matrix, compute_matthews_corrcoef
-from dataset import to_categorical_classes
-from skimage.segmentation import find_boundaries
-#%matplotlib qt
-
-# init
-n = 10
-#model_file = 'UNet_04102019_15:19:54_res:1_epoch:.06_valloss:.0.0318.hdf5'
-#model_path = model_savepath + model_file
-#model = load_model(model_path, custom_objects={'BilinearUpSampling2D':BilinearUpSampling2D, 'dice_loss':dice_loss})
-
-# get n random patches from the testset
-index_test = load_test_indices(tiles_test_file, coordspath + coordsfilename)
-index_predict = np.random.choice(index_test, n)
-index_predict = [11288, 10876,43659,18317, 25729,63385, 10073, 80736, 25751, 43424,9997, 73016,46201,48575,45781,7944]
-index_predict = index_predict[10:15]
-index_predict = [k for k in index_predict]
-patches, gt_patches = get_patches(patchespath, index_predict, patch_size_padded, channels, resolution=resolution)
-
-# binary case: only predict class boundaries
-if n_classes == 2:
-    gt_patches_full = gt_patches
-    gt_patches = np.zeros((n, patch_size_padded, patch_size_padded, 2), dtype=np.int8)
-    for i in range(n):
-        gt_classes = np.argmax(gt_patches_full[i,], axis=2)
-        edges = find_boundaries(gt_classes, mode='inner')
-        gt_patches[i,] = to_categorical_classes(edges, [0,1])
-# binary case: only predict grass/no-grass
-if n_classes == 2:
-    gt_patches_full = gt_patches
-    gt_patches = np.zeros((n, patch_size_padded, patch_size_padded, 2), dtype=np.int8)
-    for i in range(n):
-                gt_classes = np.argmax(gt_patches_full[i,], axis=2)
-                gt_classes[(gt_classes == 1) | (gt_classes == 2)] = 0
-                gt_classes[(gt_classes == 3) | (gt_classes == 4)] = 1
-                gt_patches[i,] = to_categorical_classes(gt_classes, [0,1])    
-
-# predict
-predictions = model.predict(patches)
-
-# plots
-#plot_predicted_probabilities(predictions[:6], gt_patches, n_classes, uncertainty=0.3)
-plot_predicted_patches(predictions, gt_patches, patches)
-#plot_prediction_uncertainty(predictions[:6], gt_patches, n_classes)
-
-# metrics
-mcc = compute_matthews_corrcoef(gt_patches, predictions)
-mcc
-cm = compute_confusion_matrix(gt_patches, predictions, classes=[0,1,2,3,4], class_names=class_names, user_producer=False, normalize=True)
-cm
-
-# =============================================================================
-# plot_confusion_matrix(gt_patches, predictions, classes = [0,1,2,3,4], class_names=class_names, normalize=True,
-#                       title='Normalized confusion matrix')
-# =============================================================================
-
-# summarize feature map shapes
-for i in range(len(model.layers)):
-	layer = model.layers[i]
-	# check for convolutional layer
-	if 'conv' not in layer.name:
-		continue
-	# summarize output shape
-	print(i, layer.name, layer.output.shape)
-    
- 	
-# redefine model to output right after the first hidden layer
-from tensorflow.keras import Model
-import matplotlib.pyplot as plt
-
-model2 = Model(inputs=model.inputs, outputs=model.layers[74].output)
-
-featuremap = model2.predict(patches)
-
-# plot all 64 maps in an 8x8 squares
-
-#plot
-rows = 4
-cols = 4
-    
-# prepare
-fig, ax = plt.subplots(rows,cols)
-    
-for i in range(featuremap.shape[3]):
-    
-    plt_im = featuremap[3][:, :, i].astype(np.float64)    
-    
-    # plot training image
-    image = ax[int(i/4),int((i/4) % 1 * 4)].imshow(plt_im)
-
-
-#%%
-"""
-some small test to get information about classes in tiles, work-in-progress
-"""
-# extact classes
-tara0 = np.where(patch8000[:,:,5]==1)
-tara20 = np.where(patch8000[:,:,6]==1)
-tara50 = np.where(patch8000[:,:,7]==1)
-woods = np.where(patch8000[:,:,8]==1)
-no_colt = np.where(patch8000[:,:,9]==1)
-patch8000_features = patch8000[:,:,0:5]
-tara0_8000 = patch8000_features[tara0[0], tara0[1],]
-tara20_8000 = patch8000_features[tara20[0], tara20[1],]
-tara50_8000 = patch8000_features[tara50[0], tara50[1],]
-woods_8000 = patch8000_features[woods[0], woods[1],]
-no_colt_8000 = patch8000_features[no_colt[0], no_colt[1],]
-
-# class statistics
-features = np.arange(5)
-classes = np.arange(5,10)
-means = []
-classesY= []
-featY = []
-stdY= []
-colors = ['red', 'green', 'blue', 'darkred', 'yellow']
-cmap = ListedColormap(colors)
-
-for cl in classes:
-    pix = np.where(patch8000[:,:,cl]==1)
-    pix_cl =  patch8000_features[pix[0], pix[1],]
-        
-    for ft in features:
-        ft_cl = pix_cl[:,ft]
-        print("cl: " + str(cl-5) + " - ft: " + str(ft))
-        print("mean: " + str(np.mean(ft_cl)))
-        print("sd: " + str(np.std(ft_cl)))
-        print("\n")
-        means.append(ft_cl)
-        classesY.append(cl)
-        featY.append(ft)
-        stdY.append(np.std(ft_cl))
- 
-plt.boxplot(means)  
-plt.colorbar()     
-tara0R = tara0_8000[:,0]
-tara0G = tara0_8000[:,1]
-tara0B = tara0_8000[:,2]
-tara0NIR = tara0_8000[:,3]
-tara0DEM = tara0_8000[:,4]
-
-woodsR = woods_8000[:,0]
-woodsG = woods_8000[:,1]
-woods0B = woods_8000[:,2]
-woodsNIR = woods_8000[:,3]
-woodsDEM = woods_8000[:,4]
-
-
-# edge detection    
-from scipy import ndimage
-input_result = np.argmax(gt[5], axis=2)
-result = ndimage.sobel(input_result)
-result[result !=0] = 1
-plt.imshow(result)
-
-#%% 
-"""
-Train models in a for loop
-"""
-
-"""
-Initialize model
-"""
-# libs for initializing
-from models import models
-from tensorflow.keras import metrics
-from tensorflow.keras import optimizers
-# libs for training
-from time import localtime, strftime
-from matplotlib import pyplot as plt
-from dataset import train_val_split, train_test_split_random, train_val_split_random
-from datagenerator import DataGen
-from plots import plot_history
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
-import h5py
-
-for channels in [[0,1,2]]:    
-
-    n_channels=len(channels)
-        
-    # init 
-    image_size = (patch_size_padded, patch_size_padded, n_channels)
-    
-    # train different folds
-    for kth_fold in [0,1,2,3,4]:
-        
-        # model parameters
-        modelname ="UNet"
-        args = {
-          'dropout_rate': 0.,
-          'weight_decay':0., 
-          'batch_momentum':0.9
-        }
-        lr= 1e-4
-        epsilon=1e-8
-        
-        # init model
-        model = models.all_models[modelname](image_size, n_classes, **args)
-        optimizer = optimizers.Adam(lr, epsilon)
-        model.compile(optimizer=optimizer ,loss='categorical_crossentropy', 
-                      metrics=[metrics.categorical_accuracy])
-    
-        output_model_path = model_savepath + modelname + \
-            '_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + \
-            '_res:' + str(resolution) +"_fold:" + str(kth_fold) + "_channels:"+ str(channels)+ "_epoch:.{epoch:02d}"+"_valloss:.{val_loss:.4f}.hdf5"
-        print(output_model_path)
-        
-        # init
-        folds = 5 
-        
-        # training setup
-        batch_size = 64
-        epochs=200
-        checkpoint = ModelCheckpoint(output_model_path, monitor='val_loss', save_best_only=True, mode='min')
-        stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=15, mode='min')
-        tensorboard = TensorBoard(log_dir = log_dir+modelname+'_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())))
-        pretrained_resnet50 = False
-        if modelname in ("Pretrained_ResNet", "Pretrained_VGG16_T", "pretrained_VGG16"):
-            pretrained_resnet50 = True
-        
-        # load train and validation set
-        index_train, index_val = train_val_split(tiles_cv_file, coordspath + coordsfilename, folds, kth_fold)
-        #index_train, index_val, index_test = train_test_split_random(coordspath + coordsfilename)
-        #index_train, index_val = train_val_split_random(tiles_cv_file, coordspath + coordsfilename, 15000)
-        
-         
-        n_patches_train = len(index_train)
-        n_patches_val = len(index_val)
-        
-        # init datagenerator
-        train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, 
-                        shuffle=True, augment=True, indices=index_train , 
-                        batch_size=batch_size, patch_size=patch_size_padded, 
-                        n_classes=n_classes, channels=channels, max_size=max_size,pretrained_resnet50=pretrained_resnet50)
-        val_generator = DataGen(data_path = patchespath, n_patches = n_patches_val, 
-                        shuffle=True, augment=False, indices=index_val , 
-                        batch_size=batch_size, patch_size=patch_size_padded, 
-                        n_classes=n_classes, channels=channels, max_size=max_size,pretrained_resnet50=pretrained_resnet50)
-        
-        # run
-        result = model.fit_generator(generator=train_generator, validation_data=val_generator, 
-                        epochs=epochs,callbacks=[checkpoint,tensorboard, stop]) 
-        
-        # plot training history
-        plot_history(result)
-
-#%% 
-"""
-Train models on full trainingset (train+val) in a for loop
-"""
-# libs for initializing
-from models import models
-from tensorflow.keras import metrics
-from tensorflow.keras import optimizers
-# libs for training
-from time import localtime, strftime
-from matplotlib import pyplot as plt
-from dataset import train_val_split, train_val_split_random
-from datagenerator import DataGen
-from plots import plot_history
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
-import h5py
+# libs
 import os
+import random
+from time import localtime, strftime
+import torch
+from dataset import train_val_split
+from pytorch.train import train
+
+# libs
+import yaml
+
+# load configuration file
+cfg_file = 'config/grassland-hrnetv2_dataset-grid.yaml'
+with open(cfg_file, 'r') as ymlfile: 
+    cfg = yaml.load(ymlfile)
+    
+# info
+#print("Loaded configuration file {}".format(cfg))
+cfg
+
+# init specific for pytorch
+num_class= 5
+arch_encoder= 'hrnetv2'
+arch_decoder= 'c1'
+fc_dim= 720
+pretrained = False
+batch_size_per_gpu= 64
+num_epoch= 250
+start_epoch= 0
+epoch_iters= 1555
+lr_encoder= 0.0001
+lr_decoder= 0.0001
+weight_decay= 0.0001
+workers= 2
+disp_iter= 200
+seed= 304
+kth_fold= 0
+val_batch_size= 32
+val_epoch_iters= 406
+val_workers= 2
+
+DIR= "/data3/marrit/GrasslandProject/GrasslandProject_pytorch/ckpt/grassland-hrnetv2-c1"
+tb_DIR= "/data3/marrit/GrasslandProject/GrasslandProject_pytorch/tensorboard/grassland-hrnetv2-c1"
+
+# Start from checkpoint
+if start_epoch > 0:
+    cfg['MODEL']['weights_encoder'] = os.path.join(
+        DIR, 'encoder_epoch_{}.pth'.format(start_epoch))
+    cfg['MODEL']['weights_decoder'] = os.path.join(
+        DIR, 'decoder_epoch_{}.pth'.format(start_epoch))
+    assert os.path.exists(cfg['MODEL']['weights_encoder']) and \
+        os.path.exists(cfg['MODEL']['weights_decoder']), "checkpoint does not exitst!"
+
+# gpu ids
+gpus = [0]
+gpus = [int(x) for x in gpus]
+num_gpus = len(gpus)
+batch_size = num_gpus *batch_size_per_gpu
+
+# init
+cfg['TRAIN']['max_iters'] = epoch_iters * num_epoch
+cfg['TRAIN']['running_lr_encoder'] = lr_encoder
+cfg['TRAIN']['running_lr_decoder'] = lr_decoder
+
+random.seed(seed)
+torch.manual_seed(seed)
+
+# get indices for train and validation
+index_train, index_val = train_val_split(tiles_cv_file,coordsfile,  
+        folds, kth_fold)
+
+# Output directory
+outputtime = '_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime()))
+DIR = DIR + outputtime
+test_dir = DIR
+tb_DIR = tb_DIR + "/" + outputtime + "/"
+if not os.path.isdir(DIR):
+    os.makedirs(DIR)
+print("Outputing checkpoints to: {}".format(DIR))
+
+train(cfg, gpus, patchespath, index_train, index_val, patch_size, tb_DIR, 
+          arch_encoder, arch_decoder,fc_dim, channels, num_class, pretrained,
+          batch_size_per_gpu, val_batch_size, workers, val_workers, start_epoch,
+          num_epoch, lr_encoder, lr_decoder, weight_decay, DIR, val_epoch_iters,
+          epoch_iters, disp_iter)
+
+#%% test pytorch model
+"""
+Test pytorch model
+"""
+
+import os
+from dataset import get_test_indices, train_val_split
+from pytorch.evaluate_testset import test
+from plots import visualize_results
+import pandas as pd
+
+gpu = 0
+#kth_fold = 4
+test_dir = "/data3/marrit/GrasslandProject/GrasslandProject_pytorch/ckpt/grassland-hrnetv2-c1_07112019_18:51:56_07112019_18:54:10"
+checkpoint = "epoch_140.pth"
+visualize = True
+pretrained = False
+
+# absolute paths of model weights
+weights_encoder = os.path.join(
+    test_dir, 'encoder_' + checkpoint)
+weights_decoder = os.path.join(
+   test_dir, 'decoder_' + checkpoint)
+assert os.path.exists(weights_encoder) and \
+    os.path.exists(weights_decoder), "checkpoint does not exitst!"
+
+results_dir = os.path.join(test_dir, "result")
+if not os.path.isdir(os.path.join(test_dir, "result")):
+    os.makedirs(os.path.join(test_dir, "result"))
+
+index_test = get_test_indices(tiles_test_file, coordsfile)
+# get indices for test in this case the validation set is used for testing!
+index_train, index_test = train_val_split(
+        tiles_cv_file,  
+        coordsfile,  
+        folds, 
+        kth_fold)
+
+
+test(cfg, gpu, arch_encoder, arch_decoder, fc_dim, channels, weights_encoder, 
+         weights_decoder, num_class, class_names, pretrained, patchespath, patch_size, 
+         patch_size_padded, index_test, visualize, results_dir)
+
+summary = pd.read_csv(os.path.join(test_dir, 'result','summary_results.csv'))
+print(summary.iloc[0])
+
+#%% 
+"""
+Predict a full tile
+"""
+from dataset import find_patches_options_final_predict, enlarge_patches, read_patch_1m
+from osgeo import gdal
+import pandas as pd
+import numpy as np
+
+tile = '061032w'
+coordsfilename = 'patches_' + tile +'.csv'
+coordsfile = coordspath + coordsfilename
+# always extract patches at original resolution of 20cm:
+patch_size = 160
+patch_size_padded = 480
+padding = 32*5
+
+# get alle patches on tile (even those outside classification task)
+tile_to_csv_grid(inputpath, coordspath, coordsfilename, patch_size_padded=160, classes=[638,659,654,650,770],tile=tile, fraction=0,final=True)
+# add padding
+enlarge_patches(coordsfile, padding, patch_size)
+
+## back to 1m resolution
+coords = pd.read_csv(coordsfile, sep=',')
+patch_size = 32
+patch_size_padded = int(patch_size * 3)
+patchespath = '/marrit1/GrasslandProject/Patches_' + tile + '/res_' + str(resolution) + '/'
+imagespath = patchespath + 'images/'
+labelspath = patchespath + 'labels/'
+
+if not os.path.isdir(patchespath):
+    os.makedirs(patchespath) 
+if not os.path.isdir(imagespath):
+    os.makedirs(imagespath)    
+if not os.path.isdir(labelspath):
+    os.makedirs(labelspath)
+    
+# extract patches
+for idx, d in enumerate(coords['tiles']):
+    dtm_file = inputpath + d + '/dtm135.tif'
+    nir_file = inputpath + d + '/' + d + '_NIR.tif'
+    rgb_file = inputpath + d + '/' + d + '_RGB.tif'
+    gt_file = inputpath + d + '/tare.tif'
+    
+    ds = gdal.Open(dtm_file)
+    width = ds.RasterXSize
+    height = ds.RasterYSize 
+    nir_1m = gdal.Warp("", nir_file, format='mem', width=width, height=height, resampleAlg=1)
+    rgb_1m = gdal.Warp("", rgb_file, format='mem', width=width, height=height, resampleAlg=1)
+    gt_1m = gdal.Warp("", gt_file, format='mem', width=width, height=height, resampleAlg=0)
+    warpedtile = d
+    ds = None       
+    
+    # extract patches
+    im, gt = read_patch_1m(rgb_1m, nir_1m, dtm_file, gt_1m, coords, patch_size_padded, idx, classes)     
+    np.save(imagespath + str(idx)+'.npy', im)
+    np.save(labelspath + str(idx) + '.npy', gt)
+    if idx % 500 == 0: 
+        print('\r {}/{}'.format(idx, len(coords)),end='')   
+
+# save also ground truth
+gt_resamp = gt_1m.GetRasterBand(1).ReadAsArray()
+gt_resamp = np.uint16(gt_resamp)
+tile_rows = coords['tile_rows'][0]
+tile_cols = coords['tile_cols'][0]
+
+### PREDICTION PART ###
+import os
+from dataset import load_test_indices, train_val_split
+from evaluate_testset import test
 
 # use gpu 1
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID";
-os.environ["CUDA_VISIBLE_DEVICES"]="1"; 
+os.environ["CUDA_VISIBLE_DEVICES"]="0"; 
 
-for channels in [[0,1,2,3,4]]:
+model_file = 'UNet_06112019_18:37:39_res:1_fold:full_channels:[0, 1, 2]__epoch:.20.hdf5'
+channels = [0,1,2] 
 
-    n_channels=len(channels)
-        
-    # init 
-    image_size = (patch_size_padded, patch_size_padded, n_channels)
-    
-        
-    # model parameters
-    modelname ="UNet"
-    args = {
-      'dropout_rate': 0.,
-      'weight_decay':0., 
-      'batch_momentum':0.9
-    }
-    lr= 1e-4
-    epsilon=1e-8
-    
-    # init model
-    model = models.all_models[modelname](image_size, n_classes, **args)
-    optimizer = optimizers.Adam(lr, epsilon)
-    model.compile(optimizer=optimizer ,loss='categorical_crossentropy', 
-                  metrics=[metrics.categorical_accuracy])
+# load model
+model_path = model_savepath + model_file
+results_path = results_dir + model_file +'/061032w/'
+batch_size=1
+visualize = True
 
-    output_model_path = model_savepath + modelname + \
-        '_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())) + \
-        '_res:' + str(resolution) +"_fold:full" + "_channels:"+ str(channels)+ "_epoch:.{epoch:02d}.hdf5"
-    print(output_model_path)
-    
-    # init
-    folds = 1
-    kth_fold = 0
-    
-    # training setup
-    batch_size = 64
-    epochs=200
-    checkpoint = ModelCheckpoint(output_model_path,period=2)
-    tensorboard = TensorBoard(log_dir = log_dir+modelname+'_{}'.format(strftime("%d%m%Y_%H:%M:%S", localtime())))
-    pretrained_resnet50 = False
-    if modelname in ("Pretrained_ResNet", "Pretrained_VGG16_T", "pretrained_VGG16"):
-        pretrained_resnet50 = True
-    
-    # load train and validation set
-    index_train, index_val = train_val_split(tiles_cv_file, coordspath + coordsfilename, folds, kth_fold)
-    #index_train, index_val, index_test = train_test_split_random(coordspath + coordsfilename)
-    #index_train, index_val = train_val_split_random(tiles_cv_file, coordspath + coordsfilename, 15000)
-    index_train = index_val    
-     
-    n_patches_train = len(index_train)
-    
-    # init datagenerator
-    train_generator = DataGen(data_path=patchespath, n_patches = n_patches_train, 
-                    shuffle=True, augment=True, indices=index_train , 
-                    batch_size=batch_size, patch_size=patch_size_padded, 
-                    n_classes=n_classes, channels=channels, max_size=max_size,pretrained_resnet50=pretrained_resnet50)
-    
-    # run
-    result = model.fit_generator(generator=train_generator, 
-                    epochs=epochs,callbacks=[checkpoint,tensorboard]) 
-    
-    # plot training history
-    plot_history(result)
+if not os.path.isdir(results_path):
+    os.makedirs(results_path)
 
-#%%
-"""
-plot predicted patch with ground truth
-"""
-from plots import plot_predicted_patches
+# get indices
+coords = pd.read_csv(coordsfile)
+index_test = [idx for idx in coords.index]    
+print('#samples: {}'.format(len(index_test)))
 
-predictions_folder = '/data3/marrit/GrasslandProject/output/results/UNet_06112019_18:37:39_res:1_fold:full_channels:[0, 1, 2]__epoch:.80.hdf5'
+test(classes, index_test, patchespath, patch_size, patch_size_padded, 
+     max_size, channels, resolution, model_path, results_path, class_names, visualize=visualize)
 
-coordsfile = coordspath+coordsfilename
-coords_df = pd.read_csv(coordsfile)
-tiles_test = np.load(tiles_test_file, allow_pickle=True)
-index_predict = np.random.choice(coords_df.loc[coords_df['tiles'].isin(tiles_test)]['Unnamed: 0'],10, replace=False)
-patch, groundtruth = get_patches(patchespath, index_predict, patch_size_padded, [0,1,2], resolution)
+### Ensamble part ###
+from dataset import get_predictions
 
-predictions = np.zeros((len(index_predict), patch_size_padded, patch_size_padded), dtype=np.int)
-for i,idx in enumerate(index_predict):
-    predictions[i] = np.load(os.path.join(predictions_folder, str(idx)+'.npy'))
+indices = index_test
+padding = 32
+patch_size = 32
+#results_path = '/data3/marrit/GrasslandProject/GrasslandProject_pytorch/ckpt/grassland-hrnetv2-c1_07112019_18:51:56_07112019_18:54:10/result/061032w'
+
+predictions = get_predictions(results_path, indices, patch_size)
+nrows = ((tile_rows - 2*padding*5)//(patch_size*5))
+ncols = ((tile_cols - 2*padding*5)//(patch_size*5))
+
+full_tile = np.zeros((nrows*patch_size,ncols*patch_size), dtype=np.uint8)
+
+for i, prediction in enumerate(predictions):
+    col = i % ncols
+    row = i // ncols
+    full_tile[row*patch_size:row*patch_size+patch_size, col*patch_size:col*patch_size+patch_size] = prediction
+
+gt_ = gt_resamp[padding+4:gt_resamp.shape[0]-(padding+4),43:gt_resamp.shape[1]-43]
+gt_mask = gt_ == 0
+full_tile[gt_mask] = 5
+
+##### PLOT  ####
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+colors = np.array([(194/256,230/256,153/256),(120/256,198/256,121/256),
+    (49/256,163/256,84/256),(0/256,76/256,38/256),(229/256,224/256,204/256),(0,0,0)])
+cmap = ListedColormap(colors)
+
+# Create figure and axes
+fig,ax = plt.subplots(figsize=(10,10))
+
+im = ax.imshow(full_tile, cmap=cmap, vmin=0, vmax=5)
+ax.axis('off')
+
+np.save('/data3/marrit/GrasslandProject/output/images/prediction_tile_061032w_1m_HRNET.npy',full_tile)
+full_tile = np.load('/data3/marrit/GrasslandProject/output/images/prediction_tile_061032w_1m_RGB.npy')
+#plt.savefig('/data3/marrit/GrasslandProject/output/images/prediction_tile_061032w_UNet_08112019_092937_RGBND_epoch160.png')
+
+##### PLOT GT ########
+# take care of classes
+gt_resamp[np.where(gt_resamp == 656)] = 650
+gt_resamp[np.where(gt_resamp == 780)] = 770
+gt_resamp[np.isin(gt_resamp, classes)==False] = 0
+gt_resamp[gt_resamp==0] =5
+gt_resamp[gt_resamp==638] = 0
+gt_resamp[gt_resamp==659] = 1
+gt_resamp[gt_resamp==654] = 2  
+gt_resamp[gt_resamp==650] = 3
+gt_resamp[gt_resamp==770] = 4
 
 
-n_patches = len(predictions)
-cols = 2
-if np.any(patch != None):
-    cols = 3
+fig,ax = plt.subplots(figsize=(10,10))
+
+im = ax.imshow(gt_resamp, cmap=cmap, vmin=0, vmax=5)
+ax.axis('off')
+
+np.save('/data3/marrit/GrasslandProject/output/images/gt_tile_061032w_1m.npy',gt_resamp)
+
+len(gt_resamp[gt_resamp == 4])
+
+#plt.savefig('/data3/marrit/GrasslandProject/output/images/gt_tile_061032w_1m_noaxis.png')
 
 
-# prepare
-fig, ax = plt.subplots(n_patches,cols, figsize=(10,10))
+#### PLOT DIFF #####
 
-for i in range(n_patches):
+# get ground truth in exactly same shape
+gt_r = gt_resamp[padding+4:gt_resamp.shape[0]-(padding+4),43:gt_resamp.shape[1]-43]
 
-    im = predictions[i]
-    gt = groundtruth[i]
-    
-    # prepare prediction plot
-    plt_im  = im
-    
-    # prepare gt plot
-    plt_gt  = np.zeros_like(gt, dtype=np.uint8)
-    plt_gt = np.argmax(gt, axis=2)
+# calculate difference
+diff = np.abs(np.subtract(full_tile.astype(np.int8), gt_r.astype(np.int8))).astype(np.float)  #full_tile - gt_r
+# mask areas not of interest
+diff[gt_mask] = np.nan
 
-    # plot training image
-    ax[i,0].imshow(plt_im, cmap=cmap, vmin=0, vmax=4)
-    
-    # plot gt 
-    grtr = ax[i,1].imshow(plt_gt, cmap=cmap, vmin=0, vmax=4) 
-    
-    # plot RGB
-    if np.any(patch != None):
-        plt_im = patch[i][:, :, [0,1,2]].astype(np.float64)
-        ax[i,2].imshow(plt_im)
+# create a colorbar of reds with white at the start
+import matplotlib as mpl
+reds = plt.cm.get_cmap('Reds', 128)
+redsW = reds(np.linspace(0,1,128))
+redsW[0] = [1.,1.,1.,1.]
+cmapWR = mpl.colors.ListedColormap(redsW, name='RedsW')
+current_cmap = plt.cm.get_cmap(cmapWR)
+current_cmap.set_bad(color='black')
 
-ep.draw_legend(grtr,titles=["tara0", "tara20", "tara50", "woods","no coltivable"],classes=[0, 1, 2, 3,4])
+#plot
+fig,ax = plt.subplots(figsize=(10,7.2))
+im = ax.imshow(diff, cmap = current_cmap)
+ax.set_yticklabels([])
+ax.set_xticklabels([])
+cbar = plt.colorbar(im)
+cbar.set_label('Error in number of classes')
+#plt.savefig('/data3/marrit/GrasslandProject/output/images/error_prediction_tile_061032w_UNet_08112019_092937_RGBND_epoch160.png')
 
 
-
-plot_predicted_patches(predictions, gt_patches, patches)

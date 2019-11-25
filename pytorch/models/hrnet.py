@@ -1,32 +1,18 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Mon Oct  7 15:03:13 2019
-
-Source: 
-https://github.com/CSAILVision/semantic-segmentation-pytorch
-Disclamer on source:
 This HRNet implementation is modified from the following repository:
 https://github.com/HRNet/HRNet-Semantic-Segmentation
 """
 
-import sys
-import os
+import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import BatchNorm2d
-try:
-    from urllib import urlretrieve
-except ImportError:
-    from urllib.request import urlretrieve
+from .utils import load_url
+from lib.nn import SynchronizedBatchNorm2d
 
-#from .utils import load_url
-#from lib.nn import SynchronizedBatchNorm2d
-
-#BatchNorm2d = SynchronizedBatchNorm2d
+BatchNorm2d = SynchronizedBatchNorm2d
 BN_MOMENTUM = 0.1
-#logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 __all__ = ['hrnetv2']
@@ -139,19 +125,19 @@ class HighResolutionModule(nn.Module):
         if num_branches != len(num_blocks):
             error_msg = 'NUM_BRANCHES({}) <> NUM_BLOCKS({})'.format(
                 num_branches, len(num_blocks))
-            #logger.error(error_msg)
+            logger.error(error_msg)
             raise ValueError(error_msg)
 
         if num_branches != len(num_channels):
             error_msg = 'NUM_BRANCHES({}) <> NUM_CHANNELS({})'.format(
                 num_branches, len(num_channels))
-            #logger.error(error_msg)
+            logger.error(error_msg)
             raise ValueError(error_msg)
 
         if num_branches != len(num_inchannels):
             error_msg = 'NUM_BRANCHES({}) <> NUM_INCHANNELS({})'.format(
                 num_branches, len(num_inchannels))
-            #logger.error(error_msg)
+            logger.error(error_msg)
             raise ValueError(error_msg)
 
     def _make_one_branch(self, branch_index, block, num_blocks, num_channels,
@@ -271,7 +257,7 @@ blocks_dict = {
 
 
 class HRNetV2(nn.Module):
-    def __init__(self, n_class, **kwargs):
+    def __init__(self, n_channels,n_class, **kwargs):
         super(HRNetV2, self).__init__()
         extra = {
             'STAGE2': {'NUM_MODULES': 1, 'NUM_BRANCHES': 2, 'BLOCK': 'BASIC', 'NUM_BLOCKS': (4, 4), 'NUM_CHANNELS': (48, 96), 'FUSE_METHOD': 'SUM'},
@@ -281,7 +267,7 @@ class HRNetV2(nn.Module):
             }
 
         # stem net
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1,
+        self.conv1 = nn.Conv2d(n_channels, 64, kernel_size=3, stride=2, padding=1,
                                bias=False)
         self.bn1 = BatchNorm2d(64, momentum=BN_MOMENTUM)
         self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1,
@@ -451,19 +437,10 @@ class HRNetV2(nn.Module):
         return [x]
 
 
-def hrnetv2(pretrained=False, **kwargs):
-    model = HRNetV2(n_class=5, **kwargs)
+def hrnetv2(pretrained=False, n_channels=5, **kwargs):
+    model = HRNetV2(n_channels=n_channels, n_class=1000, **kwargs)
     if pretrained:
+        print('pretrained model')
         model.load_state_dict(load_url(model_urls['hrnetv2']), strict=False)
 
     return model
-
-def load_url(url, model_dir='./pretrained', map_location=None):
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-    filename = url.split('/')[-1]
-    cached_file = os.path.join(model_dir, filename)
-    if not os.path.exists(cached_file):
-        sys.stderr.write('Downloading: "{}" to {}\n'.format(url, cached_file))
-        urlretrieve(url, cached_file)
-    return torch.load(cached_file, map_location=map_location)

@@ -134,6 +134,75 @@ def plot_predicted_patches(predictions, groundtruth, patch=None):
             ax[i,2].imshow(plt_im)
     
     ep.draw_legend(grtr,titles=["tara0", "tara20", "tara50", "woods","no coltivable"],classes=[0, 1, 2, 3,4])
+
+
+def plot_prediction_patch(predictions, groundtruth, patch):
+    """ plot predicted patches with ground truth
+    
+    arguments
+    ---------
+        predictions: numpy nd.array
+            probability maps of classes of patches
+            shape = (n_patches, patch_size_padded, patch_size_padded, n_classes)
+        groundtruth: numpy nd.array
+            one-hot lables of patches
+            shape = (n_patches, patch_size_padded, patch_size_padded, n_classes)
+        patch: numpy.ndarray
+            image of patch
+            shape = (n_patches, patch_size_padded, patch_size_padded, n_classes)
+    
+    output
+    ------
+        figure with n predictions plotted in first row and ground truth in second row.
+        if patch is specified the third row contains RGB image
+    """
+
+    rows = 1
+    cols = 4  
+    
+
+    
+    pred = predictions[0]
+    gt = groundtruth[0]
+    
+    # prepare prediction plot
+    plt_pred  = np.zeros_like(pred, dtype=np.uint8)
+    plt_pred = np.argmax(pred, axis=2)
+    
+    # prepare gt plot
+    plt_gt  = np.zeros_like(gt, dtype=np.uint8)
+    plt_gt = np.argmax(gt, axis=2)
+
+    # plot training image
+    plt_im = patch[0][:, :, [0,1,2]].astype(np.float64)
+    
+    # probability plot
+    plt_prob  = np.zeros_like(pred, dtype=np.float32)
+    plt_prob = 1-np.max(pred, axis=2)
+    
+    # prepare
+    fig, ax = plt.subplots(rows,cols, figsize=(10,10))
+
+    # add to plot
+    ax[0].imshow(plt_im)
+    ax[1].imshow(plt_gt, cmap=cmap, vmin=0, vmax=4) 
+    ax[2].imshow(plt_pred, cmap=cmap, vmin=0, vmax=4)
+    ax[3].imshow(plt_prob)
+    ax[0].set_yticklabels([])
+    ax[0].set_xticklabels([])
+    ax[1].set_yticklabels([])
+    ax[1].set_xticklabels([])
+    ax[2].set_yticklabels([])
+    ax[2].set_xticklabels([])
+    ax[3].set_yticklabels([])
+    ax[3].set_xticklabels([])
+
+
+    
+
+        
+    
+
      
 def plot_patches(patch, gt, n_patches):
     """ plot patches with ground truth
@@ -369,8 +438,9 @@ def plot_confusion_matrix2(cm, class_names, normalize = True, title=None, cmap=p
     -------
         plot of confusion table
     """
+   
     if not title:
-        title = 'Confusion matrix'
+        title = ''
     
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
@@ -405,6 +475,7 @@ def plot_confusion_matrix2(cm, class_names, normalize = True, title=None, cmap=p
                     ha="center", va="center",
                     color="white" if cm[i, j] > thresh else "black")
     fig.tight_layout()
+   
     return ax
 
 def plot_history(network_history):
@@ -525,26 +596,7 @@ def plot_patches_on_tile(coordsfile, tiles_path, tile, patch_size_padded):
     gt = ds.GetRasterBand(1).ReadAsArray()
     gt = np.uint16(gt)
     ds = None
-    
-# =============================================================================
-#     # get rgb tile
-#     path_rgb = tiles_path + tile + '/' + tile + '_RGB.tif'
-#     ds = gdal.Open(path_rgb,gdal.GA_ReadOnly)
-#     img = np.zeros([ds.RasterYSize,ds.RasterXSize,ds.RasterCount],dtype=np.int)
-#     for x in range(1, ds.RasterCount + 1):
-#         band = ds.GetRasterBand(x)
-#         img[:,:,x-1] = band.ReadAsArray()
-#     ds = None
-#     
-#     # get nir tile
-#     path_rgb = tiles_path + tile + '/' + tile + '_RGB.tif'
-#     ds = gdal.Open(path_rgb,gdal.GA_ReadOnly)
-#     im_NIR = ds.GetRasterBand(1).ReadAsArray() 
-#     ds = None
-# 
-#     imRGBN = np.dstack([img,im_NIR])
-# =============================================================================
-    
+       
     
     # set classes for plotting
     gt[gt==638] = 1
@@ -553,21 +605,11 @@ def plot_patches_on_tile(coordsfile, tiles_path, tile, patch_size_padded):
     gt[gt==650] = 4
     gt[gt==770] = 5
     
-# =============================================================================
-#     # prepare RGB plot
-#     plt_rgn = imRGBN[:, :, [0,1,3]]
-# =============================================================================
-    
     # Create figure and axes
     fig,ax = plt.subplots(figsize=(10,10))
     
     # plot image
-# =============================================================================
-#     im = ax.imshow(plt_rgn)
-#     plt.savefig('/data3/marrit/GrasslandProject/output/images/RGB_tile_061032w.png')
-# =============================================================================
     im = ax.imshow(gt, cmap=cmap, vmin=0, vmax=5)
-
     
     # Create a square for patch
     for index, row in patches_tile.iterrows(): 
@@ -666,6 +708,23 @@ def plot_tile(inputpath, tile):
     plt.show()
 
 def barplot_classes(tot_per_class, class_names, savepath, filename):
+    """ plot a barplot of the occurance of the classes in the dataset
+    
+    arguments
+    ---------
+        tot_per_class: array
+            array with classname and number of pixels per class
+        class_names: list
+            list with the class names to use in plot
+        savepath: string
+            location to save the plot
+        filename: string
+            filename of plot to save
+            
+    return
+    ------
+        plot of distribution of classes in dataset, save at specified location
+    """       
     
     df = pd.DataFrame(tot_per_class, columns = ['number of pixels'])
     df['class']  = class_names
@@ -683,61 +742,3 @@ def barplot_classes(tot_per_class, class_names, savepath, filename):
     
     plt.show()
     
-# =============================================================================
-# plot_tile(inputpath, '025164w')
-# 
-# # find starting points on grid, should include gt
-# def get_patches_for_full_images():    
-#     colors = ['black', 'linen', 'lightgreen', 'green', 'darkgreen', 'yellow']
-#     cmap = ListedColormap(colors)
-#     
-#     # load tile
-#     path_shp = inputpath + tile + '/tare.tif'
-#     ds = gdal.Open(path_shp,gdal.GA_ReadOnly)
-#     gt = ds.GetRasterBand(1).ReadAsArray()
-#     gt = np.uint16(gt)
-#     ds = None
-#     
-#     # get classes right
-#     gt[gt==638] = 1
-#     gt[gt==659] = 2
-#     gt[gt==654] = 3  
-#     gt[gt==650] = 4
-#     gt[gt==770] = 5
-#     
-#     # find starting point of patches
-#     gt_usable = np.argwhere(gt!=0)
-#     df_usable = pd.DataFrame(gt_usable, columns=['row', 'col'])
-#     df_usable = df_usable.divide(patch_size).astype(int)
-#     combinations = df_usable.groupby(['row','col']).size().reset_index()
-#     combinations_usable = combinations
-#     combinations_usable['tiles'] = tile
-#     combinations_usable.drop(0, axis=1, inplace=True)
-#     combinations_usable['row'] = combinations_usable['row'].multiply(patch_size)
-#     combinations_usable['col'] = combinations_usable['col'].multiply(patch_size)
-#     
-#     # remove 'halve' patches on edge
-#     combinations_usable = combinations_usable[combinations_usable['row'] < (gt.shape[0]-patch_size_padded)]
-#     combinations_usable = combinations_usable[combinations_usable['col'] < (gt.shape[1]-patch_size_padded)]
-#     
-#     # save in csv-file
-#     combinations_usable.to_csv(coordspath+coordsfilename, index=False)
-# 
-# 
-#     fig,ax = plt.subplots(figsize=(10,10))
-#     
-#     # plot image
-#     ax.imshow(gt, cmap=cmap, vmin=0, vmax=5)
-#     
-#     # Create a square for patch
-#     for index, row in combinations_usable.iterrows(): 
-#         r = row['row']
-#         c = row['col']
-#         patch = patches.Rectangle((c,r),patch_size,patch_size,linewidth=1,edgecolor='r', fill=False)
-#     
-#         # Add the patch to the Axes
-#         ax.add_patch(patch)
-#     
-#     plt.show() 
-# 
-# =============================================================================
