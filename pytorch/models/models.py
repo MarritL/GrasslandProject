@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision
 from . import hrnet, smallnet, unet
-from lib.nn import SynchronizedBatchNorm2d
+from pytorch.lib.nn import SynchronizedBatchNorm2d
 BatchNorm2d = SynchronizedBatchNorm2d
 
 

@@ -47,6 +47,18 @@ elif compute == "personal":
 
 patchespath = patchespath + 'res_' + str(resolution) + '/'
 
+# for pytorch
+# libs
+import yaml
+
+# load configuration file
+cfg_file = 'config/grassland-hrnetv2_dataset-grid.yaml'
+with open(cfg_file, 'r') as ymlfile: 
+    cfg = yaml.load(ymlfile)
+    
+# info
+cfg
+
 #%% Generate old dataset
 """
 Generate the dataset by extracting patches from the tiles. These patches are
@@ -316,18 +328,6 @@ from time import localtime, strftime
 import torch
 from dataset import train_val_split
 from pytorch.train import train
-
-# libs
-import yaml
-
-# load configuration file
-cfg_file = 'config/grassland-hrnetv2_dataset-grid.yaml'
-with open(cfg_file, 'r') as ymlfile: 
-    cfg = yaml.load(ymlfile)
-    
-# info
-#print("Loaded configuration file {}".format(cfg))
-cfg
 
 # init specific for pytorch
 num_class= 5

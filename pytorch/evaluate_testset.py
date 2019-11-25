@@ -8,12 +8,12 @@ import pandas as pd
 import torch
 import torch.nn as nn
 # Our libs
-from datagenerator_pytorch import TestDataset
-from models import ModelBuilder, SegmentationModule
-from utils import AverageMeter, colorEncode, accuracy, intersectionAndUnion
-from utils import updateConfusionMatrix, compute_mcc, find_constant_area
-from lib.nn import user_scattered_collate, async_copy_to
-from lib.utils import as_numpy
+from pytorch.datagenerator_pytorch import TestDataset
+from pytorch.models import ModelBuilder, SegmentationModule
+from pytorch.utils import AverageMeter, colorEncode, accuracy, intersectionAndUnion
+from pytorch.utils import updateConfusionMatrix, compute_mcc, find_constant_area
+from pytorch.lib.nn import user_scattered_collate, async_copy_to
+from pytorvh.lib.utils import as_numpy
 from PIL import Image
 from tqdm import tqdm
 from plots import plot_confusion_matrix
